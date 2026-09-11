@@ -56,3 +56,18 @@ No ground truth for segmentation. There is no label saying where one flight ends
 Techniques not yet attempted: running Docker Compose on a rented server, TLS behind a reverse proxy, and a workflow orchestrator. Each is a first for me.
 
 Data provenance. OpenSky Network state vectors, free for non-commercial and research use. Aircraft metadata from the same source; airport reference data from OurAirports, public domain. No personal data is involved — aircraft registrations are public records — so everything can be shown in class.
+
+
+## Setup
+
+Secrets are not in the repository. Copy `.env.example` to `.env`
+and fill in your own values:
+
+    cp .env.example .env
+
+You need an OpenSky account and an API client
+(Account page -> create API client) for the credentials.
+
+Then:
+
+    docker compose up -d
