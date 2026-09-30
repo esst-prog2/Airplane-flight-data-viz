@@ -12,6 +12,8 @@ What actually runs today, as opposed to the target shape described in [Vision](#
 - **Collector** (`ingest.py` + `run_loop.py`) — polls the OpenSky `/states/all` endpoint every 120s over the Central European bounding box, handles OAuth2 client-credentials auth, and lands every snapshot into `raw.state_snapshot` as raw, unvalidated JSON. Survives a failed run and alerts a webhook after 3 consecutive failures.
 
   These two files are complete and **frozen**: the collector is the project's one irreversible part — a day not collected is a day of history that can never be backfilled — so no change in this project modifies `ingest.py` or `run_loop.py`.
+
+  Measured, not assumed: a spike over the most recent 14 days ([sql/spike/collector_coverage.sql](sql/spike/collector_coverage.sql)) found the collector actually had ≥28 polls in only **6.82%** of hours (23 of 337) — it has been running roughly 1 hour in 15, not continuously. This is why the hourly data-quality / collection-coverage table below is now the higher-priority gap, not flight-stitching.
 - **Infrastructure** — Postgres + the collector run via `docker compose up -d` (two containers). The database schemas `raw`, `staging`, `mart`, and `ops` are created, but only `raw` currently has any tables.
 
 **Not yet built** (see [Vision](#vision) for the target shape):
