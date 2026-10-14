@@ -7,3 +7,6 @@ __pycache__/
 *.dump
 *.sql.gz
 Flights-backups/
+
+# downloaded source files (catalogues etc.): large, reproducible from the source
+data/
