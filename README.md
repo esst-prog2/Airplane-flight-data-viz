@@ -13,8 +13,8 @@ What actually runs today, as opposed to the target shape described in [Vision](#
 
   These two files are complete and **frozen**: the collector is the project's one irreversible part — a day not collected is a day of history that can never be backfilled — so no change in this project modifies `ingest.py` or `run_loop.py`.
 
-  Measured, not assumed: a spike over the most recent 14 days ([sql/spike/collector_coverage.sql](sql/spike/collector_coverage.sql)) found the collector actually had ≥28 polls in only **6.82%** of hours (23 of 337) — it has been running roughly 1 hour in 15, not continuously. This is why the hourly data-quality / collection-coverage table below is now the higher-priority gap, not flight-stitching.
-- **Infrastructure** — Postgres + the collector run via `docker compose up -d` (two containers). The database schemas `raw`, `staging`, `mart`, and `ops` are created, but only `raw` currently has any tables.
+  Runs on a Hetzner VPS since 2026-09-17, not the development machine. An early spike ([sql/spike/collector_coverage.sql](sql/spike/collector_coverage.sql)) measured only 6.82% hourly coverage, then a later check measured 5.92% — both numbers turned out to be artifacts of querying the local dev machine's intermittent Postgres container instead of the VPS (see PLANNING_LOG.md, 2026-10-07 correction entry). Re-measured directly against the VPS for the same style of 14-day window: **99.70%** of hours (336 of 337) had ≥28 polls — the collector has in fact been running continuously. The hourly data-quality / collection-coverage table is still worth building (as a permanent record of this, and to catch real future outages), but it is not fixing an active problem.
+- **Infrastructure** — Postgres + the collector run via `docker compose up -d` on the VPS (two containers, `root@65.21.0.244`, repo at `/root/flights`). The database schemas `raw`, `staging`, `mart`, and `ops` are created, but the VPS currently only has `raw` migrated — the staging/rejects/quality work from the last two weeks still needs to be deployed there. Nightly `pg_dump` backups run via cron ([deploy/backup.sh](deploy/backup.sh)), kept on the VPS and mirrored to the developer's machine.
 
 **Not yet built** (see [Vision](#vision) for the target shape):
 - Rejects table and per-record validation (missing position, altitude limits, etc.)
@@ -87,7 +87,7 @@ Three behaviours a test could check:
 
 **No ground truth for segmentation.** There is no label saying where one flight ends and the next begins; the rule is mine to define and defend. Spot checks against public flight-tracking sites, and the rule stated explicitly rather than buried.
 
-**Techniques not yet attempted:** running Docker Compose on a rented server, TLS behind a reverse proxy, and a workflow orchestrator. Each is a first for me.
+**Techniques not yet attempted:** TLS behind a reverse proxy and a workflow orchestrator. Running Docker Compose on a rented server is done (Hetzner VPS, since 2026-09-17) — each of the others is still a first for me.
 
 ### Data provenance
 
