@@ -2,30 +2,15 @@
 Unit tests for staging.ingest_snapshots() on invented data.
 
 Every number below is made up and the expected result worked out by hand,
-not copied from running the code. Each test builds a throwaway database in
-the local Postgres (the dev container), loads the repo's own SQL into it,
-and drops it afterwards, so neither the dev data nor the VPS is touched.
+not copied from running the code. The `db` fixture (tests/conftest.py) gives each test a throwaway database
+in the local Postgres with the repo's own SQL loaded, so neither the dev
+data nor the VPS is touched.
 
 Raw payload layout (OpenSky state vector): index 0 icao24, 1 callsign,
 3 time_position, 5 longitude, 6 latitude, 7 baro_altitude, 8 on_ground.
 """
 
 import json
-import os
-import uuid
-from pathlib import Path
-
-import psycopg
-import pytest
-from dotenv import load_dotenv
-from psycopg.conninfo import conninfo_to_dict, make_conninfo
-
-load_dotenv()
-
-ROOT = Path(__file__).resolve().parent.parent
-SQL_FILES = sorted((ROOT / "sql" / "init").glob("*.sql")) + [
-    ROOT / "sql" / "transform" / "staging_ingest.sql",
-]
 
 POLL_1 = 1_800_000_000
 POLL_2 = 1_800_000_010
@@ -42,32 +27,6 @@ def state(icao24, lat, lon, time_position=T, callsign="TEST1", baro=10000.0):
     payload[7] = baro
     payload[8] = False
     return payload
-
-
-@pytest.fixture
-def db():
-    """A fresh, empty database with the repo's schema and functions loaded."""
-    url = os.environ["DATABASE_URL"]
-    host = conninfo_to_dict(url).get("host")
-    assert host in ("localhost", "127.0.0.1"), (
-        f"refusing to create a test database on {host!r}; "
-        "these tests only run against the local dev Postgres"
-    )
-    # "localhost" tries IPv6 first on Windows and waits ~15 s per connection
-    # before falling back; go straight to IPv4.
-    url = make_conninfo(url, host="127.0.0.1")
-
-    name = f"test_staging_{uuid.uuid4().hex[:8]}"
-    with psycopg.connect(url, autocommit=True) as admin:
-        admin.execute(f'CREATE DATABASE "{name}"')
-    try:
-        with psycopg.connect(make_conninfo(url, dbname=name), autocommit=True) as conn:
-            for path in SQL_FILES:
-                conn.execute(path.read_text(encoding="utf-8"))
-            yield conn
-    finally:
-        with psycopg.connect(url, autocommit=True) as admin:
-            admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
 
 
 def land(conn, api_time, states):
