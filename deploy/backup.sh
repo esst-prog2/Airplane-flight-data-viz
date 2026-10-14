@@ -13,7 +13,11 @@ TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 DUMP_FILE="$BACKUP_DIR/flights_${TIMESTAMP}.dump"
 
 cd "$REPO_DIR"
-docker compose exec -T postgres pg_dump -U flights -Fc flights > "$DUMP_FILE"
+# Dump to a temp name and rename only on success, so a failed pg_dump never
+# leaves a truncated flights_*.dump that rotation would count as a good backup.
+trap 'rm -f "$DUMP_FILE.partial"' EXIT
+docker compose exec -T postgres pg_dump -U flights -Fc flights > "$DUMP_FILE.partial"
+mv "$DUMP_FILE.partial" "$DUMP_FILE"
 
 echo "$(date -u '+%Y-%m-%d %H:%M:%S UTC')  wrote $DUMP_FILE ($(du -h "$DUMP_FILE" | cut -f1))"
 
