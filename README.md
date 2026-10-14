@@ -19,7 +19,7 @@ What actually runs today, as opposed to the target shape described in [Vision](#
 **Built in the repo, not yet deployed to the VPS** (the VPS has only `raw` migrated; apply `sql/init/03_staging.sql` and the two functions below there to make these live):
 - **Staging layer, rejects table and deduplication** — [sql/init/03_staging.sql](sql/init/03_staging.sql) and [sql/transform/staging_ingest.sql](sql/transform/staging_ingest.sql) (`staging.ingest_snapshots()`): four hard reject rules into `staging.rejects`, four soft flags on `staging.state_position`, one row per `(icao24, time_position)`. It is a function you call by hand; nothing schedules it yet.
 - **Hourly collection coverage** — [sql/quality/hourly_coverage.sql](sql/quality/hourly_coverage.sql) (`staging.hourly_coverage()`): a callable function that counts hours with ≥28 polls. It is not a stored hourly table yet.
-- **One automated test** — [tests/test_hourly_coverage.py](tests/test_hourly_coverage.py), run against a real database with `DATABASE_URL` set. The reject and deduplication behaviours listed under [How we would know it works](#4-how-we-would-know-it-works) have no test yet.
+- **One automated test** — [tests/test_hourly_coverage.py](tests/test_hourly_coverage.py), run against a real database with `DATABASE_URL` set (`pip install -r requirements-dev.txt`). The reject and deduplication behaviours listed under [How we would know it works](#4-how-we-would-know-it-works) have no test yet.
 
 **Not yet built** (see [Vision](#vision) for the target shape):
 - Normalised star schema, flight-segment stitching, aircraft/airport dimensions (`mart` and `ops` schemas exist but are empty)
