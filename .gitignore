@@ -2,3 +2,8 @@
 __pycache__/
 *.pyc
 .venv/
+
+# database dumps and backups must never be committed
+*.dump
+*.sql.gz
+Flights-backups/
