@@ -13,17 +13,19 @@ What actually runs today, as opposed to the target shape described in [Vision](#
 
   These two files are complete and **frozen**: the collector is the project's one irreversible part — a day not collected is a day of history that can never be backfilled — so no change in this project modifies `ingest.py` or `run_loop.py`.
 
-  Measured, not assumed: a spike over the most recent 14 days ([sql/spike/collector_coverage.sql](sql/spike/collector_coverage.sql)) found the collector actually had ≥28 polls in only **6.82%** of hours (23 of 337) — it has been running roughly 1 hour in 15, not continuously. This is why the hourly data-quality / collection-coverage table below is now the higher-priority gap, not flight-stitching.
-- **Infrastructure** — Postgres + the collector run via `docker compose up -d` (two containers). The database schemas `raw`, `staging`, `mart`, and `ops` are created, but only `raw` currently has any tables.
+  Runs on a Hetzner VPS since 2026-09-17, not the development machine. An early spike ([sql/spike/collector_coverage.sql](sql/spike/collector_coverage.sql)) measured only 6.82% hourly coverage, then a later check measured 5.92% — both numbers turned out to be artifacts of querying the local dev machine's intermittent Postgres container instead of the VPS (see PLANNING_LOG.md, 2026-10-07 correction entry). Re-measured directly against the VPS for the same style of 14-day window: **99.70%** of hours (336 of 337) had ≥28 polls — the collector has in fact been running continuously. The hourly data-quality / collection-coverage table is still worth building (as a permanent record of this, and to catch real future outages), but it is not fixing an active problem.
+- **Infrastructure** — Postgres + the collector run via `docker compose up -d` on the VPS (two containers, `root@65.21.0.244`, repo at `/root/flights`). The database schemas `raw`, `staging`, `mart`, and `ops` are created, but the VPS currently only has `raw` migrated — the staging/rejects/quality work from the last two weeks still needs to be deployed there. Nightly `pg_dump` backups run via cron ([deploy/backup.sh](deploy/backup.sh)), kept on the VPS and mirrored to the developer's machine.
+
+**Built in the repo, not yet deployed to the VPS** (the VPS has only `raw` migrated; apply `sql/init/03_staging.sql` and the two functions below there to make these live):
+- **Staging layer, rejects table and deduplication** — [sql/init/03_staging.sql](sql/init/03_staging.sql) and [sql/transform/staging_ingest.sql](sql/transform/staging_ingest.sql) (`staging.ingest_snapshots()`): four hard reject rules into `staging.rejects`, four soft flags on `staging.state_position`, one row per `(icao24, time_position)`. It is a function you call by hand; nothing schedules it yet.
+- **Hourly collection coverage** — [sql/quality/hourly_coverage.sql](sql/quality/hourly_coverage.sql) (`staging.hourly_coverage()`): a callable function that counts hours with ≥28 polls. It is not a stored hourly table yet.
+- **One automated test** — [tests/test_hourly_coverage.py](tests/test_hourly_coverage.py), run against a real database with `DATABASE_URL` set (`pip install -r requirements-dev.txt`). The reject and deduplication behaviours listed under [How we would know it works](#4-how-we-would-know-it-works) have no test yet.
 
 **Not yet built** (see [Vision](#vision) for the target shape):
-- Rejects table and per-record validation (missing position, altitude limits, etc.)
-- Staging/cleaning layer and deduplication
-- Normalised star schema, flight-segment stitching, aircraft/airport dimensions
-- Hourly data-quality / collection-coverage table
+- Normalised star schema, flight-segment stitching, aircraft/airport dimensions (`mart` and `ops` schemas exist but are empty)
+- A stored hourly data-quality table (today only the function above)
 - Map dashboard and daily traffic curve — there is no dashboard container or code yet
 - A `flights` CLI (`flights ingest --once`, `flights build`) — today you run `python ingest.py` or `python run_loop.py` directly
-- Automated tests for the correctness behaviours listed under [How we would know it works](#4-how-we-would-know-it-works)
 - Aircraft/airport catalogue ingestion (OurAirports)
 
 ## Vision
@@ -87,7 +89,7 @@ Three behaviours a test could check:
 
 **No ground truth for segmentation.** There is no label saying where one flight ends and the next begins; the rule is mine to define and defend. Spot checks against public flight-tracking sites, and the rule stated explicitly rather than buried.
 
-**Techniques not yet attempted:** running Docker Compose on a rented server, TLS behind a reverse proxy, and a workflow orchestrator. Each is a first for me.
+**Techniques not yet attempted:** TLS behind a reverse proxy and a workflow orchestrator. Running Docker Compose on a rented server is done (Hetzner VPS, since 2026-09-17) — each of the others is still a first for me.
 
 ### Data provenance
 
