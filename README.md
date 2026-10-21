@@ -26,11 +26,13 @@ What actually runs today, as opposed to the target shape described in [Vision](#
 - **Measured coverage** — on the VPS, over the 14 days to 2026-10-14 (12,210 aircraft, 2,366,510 positions): **82.3%** of aircraft are in the catalogue and **80.7%** have a type code; by positions it is **87.6%** and **86.8%**. The gap between the two views means the unmatched aircraft (2,157 of them, about 136 positions each against about 206 for matched ones) are the occasional visitors, not the regulars. The catalogue is from 2025-08, so aircraft registered since then are missing and these figures are a lower bound. Operator is the weak field: on the VPS (same 14 days) it is known for **26.7%** of aircraft (3,257 of 12,208) and **33.5%** of positions (792,362 of 2,365,861); among aircraft that are in the catalogue it is 32% (3,257 of 10,053). The catalogue itself has it for only 5.2% of its rows. So type and country analysis is solid, operator analysis covers roughly one third of the traffic and should be presented as such.
 
 **Not yet built** (see [Vision](#vision) for the target shape):
-- Normalised star schema, flight-segment stitching, aircraft/airport dimensions (`mart` and `ops` schemas exist but are empty; `staging.aircraft` is the cleaned source for the aircraft dimension). The grain of the aggregate fact table and its 600 s segmentation threshold are decided and measured (see PLANNING_LOG.md, 2026-10-21); no tables are built yet.
-- A stored hourly data-quality table (today only the function above)
+- Normalised star schema, flight-segment stitching, aircraft/airport dimensions (`mart` and `ops` schemas exist but are empty; `staging.aircraft` is the cleaned source for the aircraft dimension). The grain of the aggregate fact table and its 600 s segmentation threshold are decided and measured (see PLANNING_LOG.md, 2026-10-21); no tables are built yet. The design is decided (PLANNING_LOG.md, 2026-10-21): an atomic fact table of positions and an aggregate fact table of transits, with aircraft, date and time-of-day dimensions, all in `mart`.
+- A stored hourly data-quality table (today only the function above) — decided: a third star in `mart`, one row per hour (PLANNING_LOG.md, 2026-10-21)
 - Map dashboard and daily traffic curve — there is no dashboard container or code yet
 - A `flights` CLI (`flights ingest --once`, `flights build`) — today you run `python ingest.py` or `python run_loop.py` directly
 - Airport catalogue ingestion (OurAirports) — deliberately deferred; the aircraft catalogue comes first
+
+**Next step:** an OpenSpec proposal for the mart build (not started); no mart SQL is written before it exists. One check from the segmentation work is still open: re-running the transit-duration query at the 300 s and 900 s thresholds to confirm that the median does not depend on the 600 s choice.
 
 ## Vision
 
