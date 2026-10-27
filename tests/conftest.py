@@ -21,6 +21,8 @@ SQL_FILES = (
     sorted((ROOT / "sql" / "init").glob("*.sql"))
     + sorted((ROOT / "sql" / "transform").glob("*.sql"))
     + sorted((ROOT / "sql" / "quality").glob("*.sql"))
+    + sorted((ROOT / "sql" / "mart").glob("*.sql"))
+    + sorted((ROOT / "sql" / "ops").glob("*.sql"))
 )
 
 
