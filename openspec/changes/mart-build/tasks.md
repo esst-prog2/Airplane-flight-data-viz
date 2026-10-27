@@ -15,10 +15,10 @@
 
 ## 3. Fact loads
 
-- [ ] 3.1 Implement `mart.load_fact_position_snapshot()` (incremental by `raw_id` watermark; join `staging` + `raw` payload for the raw-only columns; event-time keys UTC+local; `aircraft_sk` via `icao24`→unknown member; one transaction; `ON CONFLICT (icao24, time_position_utc) DO NOTHING`); verify dedup (test 2), unknown-member resolution (test 1) and idempotency (test 4)
-- [ ] 3.2 Implement `mart.load_fact_flight_transit()` (gaps-and-islands at 600 s via `LAG`+`SUM OVER`; closed-only at `live_edge − 600 s`; entry/exit keys; truncation flags; `SET LOCAL work_mem`; `ON CONFLICT (icao24, first_seen_at)`); verify the 600/601 s split (test 3), closed-only hold-then-insert (test 5), entry-day counting (test 6) and idempotency
-- [ ] 3.3 Implement `mart.close_open_transits()` (closing run: remaining open islands inserted with `is_end_truncated = TRUE`); verify on a fixture that an open transit is inserted once with the flag set
-- [ ] 3.4 Implement `mart.load_fact_hourly_coverage()` (calendar-generated completed hours; `distinct_polls` from `fetched_at`, `distinct_snapshots` from `api_time`; `is_fully_covered` on `api_time ≥ 28`; first/last hour `is_partial_hour`; current hour excluded); verify a zero-poll hour still gets a row (test 8)
+- [x] 3.1 Implement `mart.load_fact_position_snapshot()` (incremental by `raw_id` watermark; join `staging` + `raw` payload for the raw-only columns; event-time keys UTC+local; `aircraft_sk` via `icao24`→unknown member; one transaction; `ON CONFLICT (icao24, time_position_utc) DO NOTHING`); verify dedup (test 2), unknown-member resolution (test 1) and idempotency (test 4)
+- [x] 3.2 Implement `mart.load_fact_flight_transit()` (gaps-and-islands at 600 s via `LAG`+`SUM OVER`; closed-only at `live_edge − 600 s`; entry/exit keys; truncation flags; `SET LOCAL work_mem`; `ON CONFLICT (icao24, first_seen_at)`); verify the 600/601 s split (test 3), closed-only hold-then-insert (test 5), entry-day counting (test 6) and idempotency
+- [x] 3.3 Implement `mart.close_open_transits()` (closing run: remaining open islands inserted with `is_end_truncated = TRUE`); verify on a fixture that an open transit is inserted once with the flag set
+- [x] 3.4 Implement `mart.load_fact_hourly_coverage()` (calendar-generated completed hours; `distinct_polls` from `fetched_at`, `distinct_snapshots` from `api_time`; `is_fully_covered` on `api_time ≥ 28`; first/last hour `is_partial_hour`; current hour excluded); verify a zero-poll hour still gets a row (test 8)
 
 ## 4. Scheduling and freshness
 
@@ -29,8 +29,8 @@
 ## 5. Tests
 
 - [x] 5.1 Add `tests/test_mart_dimensions.py` covering dimension stability, unknown member, no-NULL policy and DST keys (tests 7, 9, 10) on a throwaway local database via the existing `conftest.py` fixture; verify green and red-checked
-- [ ] 5.2 Add `tests/test_mart_facts.py` covering position dedup/idempotency, transit segmentation/closed-only/midnight, and coverage zero-poll (tests 1–6, 8); verify green and red-checked
-- [ ] 5.3 Add a regression test against a fixed historical window (transit count at 600 s in the agreed window and tolerance, order of magnitude of the logged 17,272 / 2 days, test 11); verify green
+- [x] 5.2 Add `tests/test_mart_facts.py` covering position dedup/idempotency, transit segmentation/closed-only/midnight, and coverage zero-poll (tests 1–6, 8); verify green and red-checked
+- [ ] 5.3 (deferred to chunk D / VPS deploy — needs the mart built on real data) Add a regression test against a fixed historical window (transit count at 600 s in the agreed window and tolerance, order of magnitude of the logged 17,272 / 2 days, test 11); verify green
 
 ## 6. Deploy and documentation
 
