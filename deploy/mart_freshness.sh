@@ -5,10 +5,14 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
-THRESHOLD="${MART_FRESHNESS_THRESHOLD_MINUTES:-180}"
 
 cd "$REPO_DIR"
+
+# make .env values (ALERT_WEBHOOK_URL) available when started from cron, which
+# does not read .env; harmless when run by hand with the var already exported.
+[ -f .env ] && { set -a; . ./.env; set +a; }
+WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
+THRESHOLD="${MART_FRESHNESS_THRESHOLD_MINUTES:-180}"
 
 row="$(docker compose exec -T postgres psql -U flights -d flights -At -F '|' \
         -c "SELECT coalesce(lag_minutes::text, 'n/a'), is_stale FROM ops.check_freshness(${THRESHOLD});")"
