@@ -22,9 +22,9 @@
 
 ## 4. Scheduling and freshness
 
-- [ ] 4.1 Write `deploy/mart_build.sh` chaining `staging.ingest_snapshots` → the three fact loads, `flock`, one log line per step, stop and alert via the webhook on the first failure; verify a forced step failure stops the chain and would alert
-- [ ] 4.2 Implement `ops.check_freshness()` (mart lag = newest raw `fetched_at` − newest position-fact arrival; alert over 3 h); verify it reports healthy within threshold and alerts past it on a fixture
-- [ ] 4.3 Document the two VPS crontab entries (build chain at minute 5, freshness at minute 35) in the deploy docs; verify the lines are correct and non-overlapping (do not install here — that is a VPS step the user runs)
+- [x] 4.1 Write `deploy/mart_build.sh` chaining `staging.ingest_snapshots` → the three fact loads, `flock`, one log line per step, stop and alert via the webhook on the first failure; verify a forced step failure stops the chain and would alert
+- [x] 4.2 Implement `ops.check_freshness()` (mart lag = newest raw `fetched_at` − newest position-fact arrival; alert over 3 h); verify it reports healthy within threshold and alerts past it on a fixture
+- [x] 4.3 Document the two VPS crontab entries (build chain at minute 5, freshness at minute 35) in the deploy docs; verify the lines are correct and non-overlapping (do not install here — that is a VPS step the user runs)
 
 ## 5. Tests
 
