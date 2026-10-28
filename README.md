@@ -104,7 +104,7 @@ Three behaviours a test could check:
 
 ### Data provenance
 
-OpenSky Network state vectors, free for non-commercial and research use. Aircraft metadata from the same source; airport reference data from OurAirports, public domain. No personal data is involved — aircraft registrations are public records — so everything can be shown in class.
+OpenSky Network state vectors, free for non-commercial and research use. Aircraft metadata from the same source; airport reference data from OurAirports, public domain. Aircraft registrations are public records. One field needs care: OpenSky's `owner` can name a private individual for a small aircraft, so `dim_aircraft` stores `owner` but the dashboard never displays it — only aggregate type, operator and country are shown. No other personal data is involved, so everything can be shown in class.
 
 ## Setup
 
