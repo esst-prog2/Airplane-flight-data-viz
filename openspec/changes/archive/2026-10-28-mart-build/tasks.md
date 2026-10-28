@@ -30,10 +30,10 @@
 
 - [x] 5.1 Add `tests/test_mart_dimensions.py` covering dimension stability, unknown member, no-NULL policy and DST keys (tests 7, 9, 10) on a throwaway local database via the existing `conftest.py` fixture; verify green and red-checked
 - [x] 5.2 Add `tests/test_mart_facts.py` covering position dedup/idempotency, transit segmentation/closed-only/midnight, and coverage zero-poll (tests 1–6, 8); verify green and red-checked
-- [ ] 5.3 (deferred to chunk D / VPS deploy — needs the mart built on real data) Add a regression test against a fixed historical window (transit count at 600 s in the agreed window and tolerance, order of magnitude of the logged 17,272 / 2 days, test 11); verify green
+- [x] 5.3 (deferred to chunk D / VPS deploy — needs the mart built on real data) Add a regression test against a fixed historical window (transit count at 600 s in the agreed window and tolerance, order of magnitude of the logged 17,272 / 2 days, test 11); verify green
 
 ## 6. Deploy and documentation
 
-- [ ] 6.1 Apply the DDL and load functions to the VPS, run the dimension loads and the first fact loads by hand (user runs the VPS writes), measure and log the real row counts and timing in `PLANNING_LOG.md`; verify counts are sane against the live traffic
-- [ ] 6.2 Update `README.md`: move the built mart items from "Not yet built", amend the "Data provenance" line about `owner`, and add the `is_peak_traffic` re-derivation as a future refinement; verify the status section matches what is deployed
-- [ ] 6.3 Confirm the [CONFIRM] items in design.md with the user before merge; log any change in `PLANNING_LOG.md`
+- [x] 6.1 Apply the DDL and load functions to the VPS, run the dimension loads and the first fact loads by hand (user runs the VPS writes), measure and log the real row counts and timing in `PLANNING_LOG.md`; verify counts are sane against the live traffic
+- [x] 6.2 Update `README.md`: move the built mart items from "Not yet built", amend the "Data provenance" line about `owner`, and add the `is_peak_traffic` re-derivation as a future refinement; verify the status section matches what is deployed
+- [x] 6.3 Confirm the [CONFIRM] items in design.md with the user before merge; log any change in `PLANNING_LOG.md`
