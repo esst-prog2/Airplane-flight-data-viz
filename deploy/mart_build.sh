@@ -9,7 +9,6 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOCK_FILE="${LOCK_FILE:-/tmp/flights_mart_build.lock}"
-WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
 
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
@@ -18,6 +17,11 @@ if ! flock -n 9; then
 fi
 
 cd "$REPO_DIR"
+
+# make .env values (ALERT_WEBHOOK_URL) available when started from cron, which
+# does not read .env; harmless when run by hand with the var already exported.
+[ -f .env ] && { set -a; . ./.env; set +a; }
+WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
 
 ts() { date -u '+%Y-%m-%d %H:%M:%S UTC'; }
 
