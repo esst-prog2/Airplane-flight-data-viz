@@ -10,9 +10,9 @@
 
 ## 2. Read-only API
 
-- [ ] 2.1 Implement the FastAPI service (`GET /meta`, `/day/{date}/map`, `/day/{date}/curve`, `/day/{date}/coverage`, `/day/{date}/breakdown`) over `DbSource` on `flights_ro`; verify each endpoint returns JSON aggregates for a known day via the test client
-- [ ] 2.2 Implement `ApiSource` (HTTP client) against the API; verify it yields the same aggregates as `DbSource` for the same day
-- [ ] 2.3 Add API tests: endpoint shapes, an empty day returns zeroed aggregates (not an error), responses carry no raw position rows and no `owner` field; verify green and red-checked
+- [x] 2.1 Implement the FastAPI service (`GET /meta`, `/day/{date}/map`, `/day/{date}/curve`, `/day/{date}/coverage`, `/day/{date}/breakdown`) in `dashboard/api.py` over `DbSource` (DSN from `DASHBOARD_DSN`/`flights_ro`, falling back to `DATABASE_URL`); verified each endpoint returns JSON aggregates via the TestClient
+- [x] 2.2 Implement `ApiSource` (HTTP client, pluggable `client` for testing) in `dashboard/datasource.py`; verified it yields the same aggregates as `DbSource` for the same day
+- [x] 2.3 Add API tests in `tests/test_dashboard_api.py` on a throwaway DB: endpoint shapes, an empty day returns zeroed aggregates (not an error), the map returns aggregated cells (count 2 for two positions) not raw rows, and no `owner` field anywhere; 6 tests green, full suite 33 passed / 1 skipped
 
 ## 3. Streamlit dashboard and the five views
 
