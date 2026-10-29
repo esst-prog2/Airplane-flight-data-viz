@@ -105,6 +105,51 @@ class DbSource:
         return bin_h3(points, self._res)
 
 
+class ApiSource:
+    """Reads the read-only API over HTTP — the live dashboard's primary backend.
+    `client` accepts any object with a `.get(url)` returning a response that has
+    `.raise_for_status()` and `.json()` (an `httpx.Client` in production, a
+    FastAPI `TestClient` in tests); without one it uses `httpx` directly."""
+
+    def __init__(self, base_url: str = "", timeout: float = 10.0, client: Any = None) -> None:
+        self._base = base_url.rstrip("/")
+        self._timeout = timeout
+        self._client = client
+
+    def _get(self, path: str) -> dict[str, Any]:
+        url = self._base + path
+        if self._client is not None:
+            resp = self._client.get(url)
+        else:
+            import httpx
+
+            resp = httpx.get(url, timeout=self._timeout)
+        resp.raise_for_status()
+        return resp.json()
+
+    def date_range(self) -> tuple[dt.date | None, dt.date | None]:
+        d = self._get("/meta")["date_range"]
+        lo = dt.date.fromisoformat(d["min"]) if d["min"] else None
+        hi = dt.date.fromisoformat(d["max"]) if d["max"] else None
+        return (lo, hi)
+
+    def kpis(self) -> dict[str, Any]:
+        return self._get("/meta")["kpis"]
+
+    def day_map(self, day: dt.date) -> list[dict[str, Any]]:
+        return self._get(f"/day/{day.isoformat()}/map")["cells"]
+
+    def day_curve(self, day: dt.date) -> list[dict[str, Any]]:
+        return self._get(f"/day/{day.isoformat()}/curve")["curve"]
+
+    def day_coverage(self, day: dt.date) -> list[dict[str, Any]]:
+        return self._get(f"/day/{day.isoformat()}/coverage")["coverage"]
+
+    def day_breakdown(self, day: dt.date) -> dict[str, list[dict[str, Any]]]:
+        d = self._get(f"/day/{day.isoformat()}/breakdown")
+        return {"by_type": d["by_type"], "by_country": d["by_country"]}
+
+
 def bin_h3(points: list[tuple], resolution: int) -> list[dict[str, Any]]:
     """Aggregate (lat, lon) rows into H3 cells, returning each cell's id, centre
     and count. Pre-aggregating here keeps the raw points out of every response."""
