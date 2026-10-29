@@ -2,7 +2,7 @@
 
 ## 1. Read-only access and the data-source interface
 
-- [ ] 1.1 Confirm the `[CONFIRM]` design decisions with the user before building — D2 map binning (H3 res 5 vs lat/lon grid), D3 snapshot format (SQLite), D5 charting (Altair), D7 live exposure (Caddy vs IP:port); log any change in `PLANNING_LOG.md`
+- [ ] 1.1 Confirm the remaining `[CONFIRM]` design decisions with the user before building — D2 map binning (H3 res 5 vs lat/lon grid) and D3 snapshot format (SQLite); D5 (Plotly) and D7 (Caddy + HTTPS, free domain) are already decided (PLANNING_LOG 2026-10-29); log any change in `PLANNING_LOG.md`
 - [ ] 1.2 Define the `DataSource` protocol (`date_range`, `kpis`, `day_map`, `day_curve`, `day_coverage`, `day_breakdown`); verify a stub implementation imports and type-checks
 - [ ] 1.3 Write the per-day aggregation SQL over the mart (hex-binned map cells, distinct-aircraft hourly curve in local time, hourly coverage, type+country breakdown, dataset KPIs); verify each returns the expected shape against the dev DB for a known day (e.g. 2026-10-21)
 - [ ] 1.4 Implement `DbSource` (direct psycopg, read-only) over those queries; verify it returns non-empty aggregates for a day present in the dev DB and nothing for an empty day

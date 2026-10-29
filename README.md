@@ -33,7 +33,7 @@ What actually runs today, as opposed to the target shape described in [Vision](#
 - **Tests** — [tests/test_mart_dimensions.py](tests/test_mart_dimensions.py), [tests/test_mart_facts.py](tests/test_mart_facts.py), and [tests/test_ops_freshness.py](tests/test_ops_freshness.py) against throwaway databases on the local dev Postgres.
 
 **Not yet built** (see [Vision](#vision) for the target shape):
-- Map dashboard and daily traffic curve — there is no dashboard container or code yet
+- Map dashboard and daily traffic curve — planned as a pure-Python Streamlit dashboard over the mart (the `dashboard-build` OpenSpec change); no dashboard code exists yet. Two forms: a **live** version on the VPS and a **permanent public** version built from a frozen snapshot of the final data. The permanent form may later run live instead, if a free always-on host is found.
 - A `flights` CLI (`flights ingest --once`, `flights build`) — today you run `python ingest.py` or `python run_loop.py` directly, and the mart is built by the deploy scripts above
 - Airport catalogue ingestion (OurAirports) — deliberately deferred; the aircraft catalogue comes first
 - A read-only database role for least-privilege access — the dashboard (and any metrics, monitoring or agent reader) should connect through a `SELECT`-only role (e.g. `flights_ro` with `CONNECT`/`USAGE`/`SELECT`), not the `flights` owner, ideally over a restricted remote path, so a reader can pull data without any write power. Not needed yet; today the owner role is used throughout, reached only through SSH + `docker compose exec` (Postgres is bound to `127.0.0.1`, never exposed to the internet)

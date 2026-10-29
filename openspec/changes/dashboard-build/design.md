@@ -33,14 +33,14 @@ The frozen snapshot is a single **SQLite** file holding per-day aggregate tables
 ### D4 — API shape: a few read-only per-day endpoints
 `GET /meta` (date range + dataset KPIs), `GET /day/{date}/map`, `/day/{date}/curve`, `/day/{date}/coverage`, `/day/{date}/breakdown`. FastAPI + `uvicorn`, connecting as `flights_ro`. Responses are aggregates (JSON), never raw rows. *Alternative rejected:* PostgREST (auto REST) — less control and still needs the same role; a small hand-written API is the learning goal and keeps payloads shaped for the views.
 
-### D5 — Charting: Altair for the 2-D charts `[CONFIRM]`
-Curve, coverage and breakdown use **Altair** (declarative, clean defaults, native Streamlit support); the map uses `pydeck`. *Alternative:* Plotly (more interactive, heavier). To confirm before apply.
+### D5 — Charting: Plotly for the 2-D charts
+Curve, coverage and breakdown use **Plotly** — highly interactive, polished, and the most widely used charting library in data-science / ML dashboards, chosen for that familiarity despite a heavier dependency; the map uses `pydeck`. *Alternative considered:* Altair (leaner, declarative grammar-of-graphics). Decided 2026-10-29.
 
 ### D6 — Timezone: everything the viewer sees is `Europe/Budapest` local
 Day selection, the daily curve's hours, and coverage are all in local time (UTC is internal only), matching how `is_peak_traffic` and the measured curve were derived. The default day is the most recent local day with data.
 
-### D7 — Live exposure on the VPS `[CONFIRM]`
-The live form runs as a new container (Streamlit + the API) in `docker compose`. **Proposed default:** put it behind **Caddy** for automatic HTTPS if a domain is available; otherwise reach it by `IP:port` for the presentation. To confirm before apply (depends on whether a domain exists).
+### D7 — Live exposure on the VPS: Caddy + automatic HTTPS
+The live form runs as a new container (Streamlit + the API) in `docker compose`, behind **Caddy** as a reverse proxy providing automatic HTTPS (Let's Encrypt). TLS certificates need a domain pointing at the VPS, so a **free domain** (e.g. a DuckDNS subdomain) will be used. Plain `IP:port` over HTTP remains a fallback only if no domain can be arranged. This is the "TLS behind a reverse proxy" technique the README Vision lists as a first. Decided 2026-10-29.
 
 ## Risks / Trade-offs
 
@@ -63,3 +63,4 @@ The live form runs as a new container (Streamlit + the API) in `docker compose`.
 
 - Exact H3 resolution (or grid size) is a visual-tuning detail that can be adjusted after seeing the first map without changing the specs or the task breakdown.
 - Whether to add a weekday-vs-weekend or multi-day comparison later — a possible future enhancement, out of this change.
+- The permanent form may later become a second **live** form instead of an offline snapshot, if a free always-on VPS/host is found: the same codebase would point its data source at a live database rather than the frozen snapshot. Recorded as a future possibility; it does not change this change's scope (the frozen-snapshot offline form is still what we build now).
