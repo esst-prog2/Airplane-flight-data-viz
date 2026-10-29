@@ -38,7 +38,7 @@ What actually runs today, as opposed to the target shape described in [Vision](#
 - Airport catalogue ingestion (OurAirports) — deliberately deferred; the aircraft catalogue comes first
 - A read-only database role for least-privilege access — the dashboard (and any metrics, monitoring or agent reader) should connect through a `SELECT`-only role (e.g. `flights_ro` with `CONNECT`/`USAGE`/`SELECT`), not the `flights` owner, ideally over a restricted remote path, so a reader can pull data without any write power. Not needed yet; today the owner role is used throughout, reached only through SSH + `docker compose exec` (Postgres is bound to `127.0.0.1`, never exposed to the internet)
 
-**Next step:** the map dashboard and daily traffic curve over the mart. One provisional choice to revisit then: `is_peak_traffic` in `dim_time_of_day` is currently a placeholder (06:00–09:00 / 16:00–19:00 local); re-derive it from the measured daily traffic curve once the dashboard surfaces one (PLANNING_LOG.md, 2026-10-21).
+**Next step:** the map dashboard and daily traffic curve over the mart. `is_peak_traffic` in `dim_time_of_day` has been re-derived from the measured curve — it now marks the local hours 10:00–18:00, the hours whose median distinct-aircraft presence reaches ≥80% of the daily peak, replacing the earlier 06–09/16–19 placeholder (PLANNING_LOG.md, 2026-10-29).
 
 ## Vision
 

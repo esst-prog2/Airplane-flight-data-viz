@@ -1,7 +1,11 @@
 -- mart.dim_time_of_day: one row per minute of a 24-hour day (smart key hour*60+minute),
 -- static, date-independent. Referenced by facts as a UTC minute and a local minute.
--- is_peak_traffic is provisional (06-09 / 16-19) and is to be re-derived from the
--- measured daily curve after the mart is loaded (PLANNING_LOG 2026-10-27).
+-- is_peak_traffic marks the local hours 10:00-18:00 inclusive: the hours whose median
+-- distinct-aircraft presence reaches >=80% of the daily peak in the measured curve
+-- (PLANNING_LOG 2026-10-29, re-derived from the earlier 06-09/16-19 placeholder). It is
+-- a LOCAL-time flag -- join it through the local time-of-day key, not the UTC one.
+-- The load is an upsert (DO UPDATE), so re-running it re-syncs every row to this
+-- definition; the attributes are fully derived from time_sk, so there is no key to keep stable.
 
 CREATE TABLE IF NOT EXISTS mart.dim_time_of_day (
     time_sk          INTEGER PRIMARY KEY CHECK (time_sk BETWEEN 0 AND 1439),
@@ -46,14 +50,24 @@ BEGIN
             ELSE 'este'
         END,
         (m / 60) BETWEEN 8 AND 16,
-        (m / 60) BETWEEN 6 AND 8 OR (m / 60) BETWEEN 16 AND 18,
+        (m / 60) BETWEEN 10 AND 18,
         CASE
             WHEN m / 60 BETWEEN 6  AND 13 THEN 'day'
             WHEN m / 60 BETWEEN 14 AND 21 THEN 'evening'
             ELSE 'night'
         END
     FROM generate_series(0, 1439) AS g(m)
-    ON CONFLICT (time_sk) DO NOTHING;
+    ON CONFLICT (time_sk) DO UPDATE SET
+        hour_24          = EXCLUDED.hour_24,
+        minute           = EXCLUDED.minute,
+        quarter_hour     = EXCLUDED.quarter_hour,
+        time_label       = EXCLUDED.time_label,
+        hour_label       = EXCLUDED.hour_label,
+        time_of_day      = EXCLUDED.time_of_day,
+        time_of_day_hu   = EXCLUDED.time_of_day_hu,
+        is_business_hour = EXCLUDED.is_business_hour,
+        is_peak_traffic  = EXCLUDED.is_peak_traffic,
+        shift_label      = EXCLUDED.shift_label;
 
     GET DIAGNOSTICS v_count = ROW_COUNT;
     RETURN v_count;
