@@ -1,0 +1,6 @@
+# Dashboard + read-only API stack. Installed where the dashboard/API run
+# (the VPS live container and Streamlit Community Cloud), not needed by the
+# collector. Grown chunk by chunk.
+psycopg[binary]>=3.1
+h3>=4.1
+# later chunks: fastapi, uvicorn, streamlit, pydeck, plotly

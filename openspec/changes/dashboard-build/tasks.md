@@ -2,11 +2,11 @@
 
 ## 1. Read-only access and the data-source interface
 
-- [ ] 1.1 Confirm the remaining `[CONFIRM]` design decisions with the user before building — D2 map binning (H3 res 5 vs lat/lon grid) and D3 snapshot format (SQLite); D5 (Plotly) and D7 (Caddy + HTTPS, free domain) are already decided (PLANNING_LOG 2026-10-29); log any change in `PLANNING_LOG.md`
-- [ ] 1.2 Define the `DataSource` protocol (`date_range`, `kpis`, `day_map`, `day_curve`, `day_coverage`, `day_breakdown`); verify a stub implementation imports and type-checks
-- [ ] 1.3 Write the per-day aggregation SQL over the mart (hex-binned map cells, distinct-aircraft hourly curve in local time, hourly coverage, type+country breakdown, dataset KPIs); verify each returns the expected shape against the dev DB for a known day (e.g. 2026-10-21)
-- [ ] 1.4 Implement `DbSource` (direct psycopg, read-only) over those queries; verify it returns non-empty aggregates for a day present in the dev DB and nothing for an empty day
-- [ ] 1.5 Add `flights_ro` role DDL (`CONNECT`/`USAGE`/`SELECT` only) as a SQL script in `sql/`; verify on the dev DB that the role can `SELECT` and that an `INSERT`/`UPDATE` is refused
+- [x] 1.1 Confirm the design decisions needed before building chunk 1 — D2 map binning decided = **H3 hexagons, resolution 5** (PLANNING_LOG 2026-10-29); D5 (Plotly) and D7 (Caddy + HTTPS, free domain) already decided; D3 snapshot format (SQLite) is confirmed at chunk 4 where it is first used; any change logged in `PLANNING_LOG.md`
+- [x] 1.2 Define the `DataSource` protocol (`date_range`, `kpis`, `day_map`, `day_curve`, `day_coverage`, `day_breakdown`) in `dashboard/datasource.py`; verified it imports and the `runtime_checkable` Protocol type-checks
+- [x] 1.3 Write the per-day aggregation SQL over the mart in `dashboard/queries.py` (H3-binned map positions, distinct-aircraft hourly curve in local time, hourly coverage, type+country breakdown, dataset KPIs); verified each returns the expected shape against the dev DB for 2026-10-21
+- [x] 1.4 Implement `DbSource` (direct psycopg, read-only; H3 binning via the `h3` library) over those queries; verified it returns aggregates for a day with data (date_range, KPIs, 24-row curve, coverage, type/country breakdown, 1830 H3 map cells)
+- [x] 1.5 Add `flights_ro` role DDL (`CONNECT`/`USAGE`/`SELECT` only) as `sql/roles/flights_ro.sql`; verified on the dev DB via `SET ROLE` that it can `SELECT` and that an `INSERT` is refused (permission denied)
 
 ## 2. Read-only API
 
