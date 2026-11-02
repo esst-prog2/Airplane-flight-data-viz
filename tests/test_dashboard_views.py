@@ -41,10 +41,11 @@ def test_kpi_items_handle_missing_values():
     assert items["Catalogue coverage"] == "—"
 
 
-def test_curve_figure_has_24_bars():
+def test_curve_figure_has_24_bars_and_a_peak_band():
     fig = views.curve_figure(CURVE)
     assert isinstance(fig, go.Figure)
     assert len(fig.data[0].x) == 24
+    assert len(fig.layout.shapes) >= 1   # the shaded peak-window band
 
 
 def test_coverage_figure_three_state_colours():

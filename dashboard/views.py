@@ -36,13 +36,19 @@ def kpi_items(kpis: dict[str, Any]) -> list[tuple[str, str]]:
 
 
 def curve_figure(curve: list[dict[str, Any]]) -> go.Figure:
-    """Distinct aircraft present per local hour (24 bars; peak hours highlighted)."""
+    """Distinct aircraft present per local hour (24 bars, all one colour). The
+    local peak-traffic window (is_peak_traffic, 10:00-18:00) is shown as a shaded
+    background band, so grey is never a bar colour here and stays reserved for
+    'no data' in the coverage strip."""
     hours = [r["hour"] for r in curve]
-    colors = ["#2b6cb0" if _PEAK_FROM <= h <= _PEAK_TO else "#a0aec0" for h in hours]
     fig = go.Figure(go.Bar(
-        x=hours, y=[r["aircraft"] for r in curve], marker_color=colors,
+        x=hours, y=[r["aircraft"] for r in curve], marker_color="#2b6cb0",
         hovertemplate="%{x}:00 — %{y} aircraft<extra></extra>",
     ))
+    fig.add_vrect(
+        x0=_PEAK_FROM - 0.5, x1=_PEAK_TO + 0.5, fillcolor="#2b6cb0", opacity=0.12,
+        line_width=0, layer="below", annotation_text="peak", annotation_position="top left",
+    )
     fig.update_layout(
         xaxis_title="local hour", yaxis_title="distinct aircraft",
         margin=dict(l=0, r=0, t=10, b=0), height=300,
