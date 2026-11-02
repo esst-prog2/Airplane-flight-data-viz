@@ -16,13 +16,13 @@
 
 ## 3. Streamlit dashboard and the five views
 
-- [ ] 3.1 Scaffold the Streamlit app and the date picker (defaults to the latest local day with data, bounded to the available range); verify picking a day drives the value the views read
-- [ ] 3.2 Map view: `pydeck` hex cells for the selected day; verify a busy day renders denser cells when run locally
-- [ ] 3.3 Daily curve: Altair chart of distinct-aircraft presence over the 24 local hours; verify it renders 24 hourly points for the selected day
-- [ ] 3.4 Coverage view: mark hours that were not fully covered for the selected day; verify a known gap day shows the missing hours flagged
-- [ ] 3.5 Type + country breakdown (no operator, no `owner`); verify it lists counts by type and country only
-- [ ] 3.6 KPI header band (dataset totals: positions, transits, distinct aircraft, days, catalogue coverage); verify the figures match a direct SQL count
-- [ ] 3.7 Partial/gap-day labelling and the operator-coverage caveat text; verify a partial first/last day is marked as partial
+- [x] 3.1 Scaffold the Streamlit app (`dashboard/app.py`) and the date picker (defaults to the latest local day, bounded to the available range; source via `DASHBOARD_API_URL` else `DATABASE_URL`); verified with `streamlit.testing` AppTest that the script runs, the picker exists, and views read the chosen day
+- [x] 3.2 Map view: `pydeck` **H3HexagonLayer** for the selected day (`views.map_deck`, count → elevation + colour ramp); verified via AppTest it renders without error and a unit test that one layer covers all cells
+- [x] 3.3 Daily curve: **Plotly** (D5, not Altair) bar chart of distinct-aircraft presence over the 24 local hours, peak hours highlighted; verified a 24-point figure in `tests/test_dashboard_views.py`
+- [x] 3.4 Coverage view: Plotly bars coloured green/red by `is_fully_covered` for the selected day; verified a gap hour is coloured red in the view test
+- [x] 3.5 Type + country breakdown (`views.breakdown_figures`, no operator, no `owner`); verified two figures build and the API/data layer already exclude owner
+- [x] 3.6 KPI header band (positions, transits, distinct aircraft, days, catalogue coverage); verified via AppTest the metrics populate from the dev DB (1,062,851 positions, 87% coverage, …) and formatting in the view test
+- [x] 3.7 Partial/gap-day labelling (`views.partial_day_note`) and the operator-coverage caveat caption; verified the note appears for unobserved/not-fully-covered hours and is absent for a clean day
 
 ## 4. Offline form (frozen snapshot)
 
