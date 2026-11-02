@@ -13,10 +13,10 @@ from dashboard import views
 CURVE = [{"hour": h, "aircraft": h * 10} for h in range(24)]
 COVERAGE_OK = [{"hour": h, "is_fully_covered": True, "positions": 100, "observed": True}
                for h in range(24)]
-# hour 3 landed but not fully covered; hour 5 was never observed
-COVERAGE_GAP = [{"hour": h,
-                 "is_fully_covered": h != 3,
-                 "positions": 0 if h == 3 else 100,
+# hours 10,11 fully covered; hour 13 has data but not a full hour; the rest no data
+COVERAGE_MIX = [{"hour": h,
+                 "is_fully_covered": h in (10, 11),
+                 "positions": 100 if h in (10, 11, 13) else 0,
                  "observed": h != 5}
                 for h in range(24)]
 BREAKDOWN = {"by_type": [{"label": "B738", "positions": 10},
@@ -41,17 +41,20 @@ def test_kpi_items_handle_missing_values():
     assert items["Catalogue coverage"] == "—"
 
 
-def test_curve_figure_has_24_bars():
+def test_curve_figure_has_24_bars_and_a_peak_band():
     fig = views.curve_figure(CURVE)
     assert isinstance(fig, go.Figure)
     assert len(fig.data[0].x) == 24
+    assert len(fig.layout.shapes) >= 1   # the shaded peak-window band
 
 
-def test_coverage_figure_colours_gaps_red():
-    fig = views.coverage_figure(COVERAGE_GAP)
+def test_coverage_figure_three_state_colours():
+    fig = views.coverage_figure(COVERAGE_MIX)
     colours = list(fig.data[0].marker.color)
-    assert colours[0] == "#38a169"   # hour 0 fully covered -> green
-    assert colours[3] == "#e53e3e"   # hour 3 not covered  -> red
+    assert colours[10] == "#38a169"   # fully covered -> green
+    assert colours[13] == "#e53e3e"   # data but not a full hour -> red
+    assert colours[0] == "#718096"    # no data -> grey
+    assert len(fig.data[0].y) == 24   # all 24 hours shown
 
 
 def test_breakdown_returns_two_figures():
@@ -69,5 +72,5 @@ def test_map_deck_one_layer_over_all_cells():
 
 def test_partial_day_note():
     assert views.partial_day_note(COVERAGE_OK) is None
-    note = views.partial_day_note(COVERAGE_GAP)
+    note = views.partial_day_note(COVERAGE_MIX)
     assert note and "hour" in note

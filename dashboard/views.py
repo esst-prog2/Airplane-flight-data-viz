@@ -36,13 +36,19 @@ def kpi_items(kpis: dict[str, Any]) -> list[tuple[str, str]]:
 
 
 def curve_figure(curve: list[dict[str, Any]]) -> go.Figure:
-    """Distinct aircraft present per local hour (24 bars; peak hours highlighted)."""
+    """Distinct aircraft present per local hour (24 bars, all one colour). The
+    local peak-traffic window (is_peak_traffic, 10:00-18:00) is shown as a shaded
+    background band, so grey is never a bar colour here and stays reserved for
+    'no data' in the coverage strip."""
     hours = [r["hour"] for r in curve]
-    colors = ["#2b6cb0" if _PEAK_FROM <= h <= _PEAK_TO else "#a0aec0" for h in hours]
     fig = go.Figure(go.Bar(
-        x=hours, y=[r["aircraft"] for r in curve], marker_color=colors,
+        x=hours, y=[r["aircraft"] for r in curve], marker_color="#2b6cb0",
         hovertemplate="%{x}:00 — %{y} aircraft<extra></extra>",
     ))
+    fig.add_vrect(
+        x0=_PEAK_FROM - 0.5, x1=_PEAK_TO + 0.5, fillcolor="#2b6cb0", opacity=0.12,
+        line_width=0, layer="below", annotation_text="peak", annotation_position="top left",
+    )
     fig.update_layout(
         xaxis_title="local hour", yaxis_title="distinct aircraft",
         margin=dict(l=0, r=0, t=10, b=0), height=300,
@@ -51,18 +57,40 @@ def curve_figure(curve: list[dict[str, Any]]) -> go.Figure:
     return fig
 
 
+_COV_GREEN, _COV_RED, _COV_GRAY = "#38a169", "#e53e3e", "#718096"
+
+
+def _cov_colour(row: dict[str, Any]) -> str:
+    if row["is_fully_covered"]:
+        return _COV_GREEN            # all expected polls landed
+    if row["positions"] > 0:
+        return _COV_RED              # some data, but not a full hour
+    return _COV_GRAY                 # no data at all (outage or not observed)
+
+
+def _cov_word(row: dict[str, Any]) -> str:
+    if row["is_fully_covered"]:
+        return "fully covered"
+    return "partial" if row["positions"] > 0 else "no data"
+
+
 def coverage_figure(coverage: list[dict[str, Any]]) -> go.Figure:
-    """Positions per local hour, coloured green when fully covered, red on a gap."""
+    """A 24-cell collection-health strip: one equal-height cell per local hour,
+    green = fully covered, red = partial, grey = no data. Height is constant on
+    purpose — this view is about collection health, not volume (that is the map
+    and the curve)."""
     hours = [r["hour"] for r in coverage]
-    colors = ["#38a169" if r["is_fully_covered"] else "#e53e3e" for r in coverage]
+    colours = [_cov_colour(r) for r in coverage]
+    hover = [f"{r['hour']:02d}:00 — {_cov_word(r)} ({r['positions']:,} positions)"
+             for r in coverage]
     fig = go.Figure(go.Bar(
-        x=hours, y=[r["positions"] for r in coverage], marker_color=colors,
-        hovertemplate="%{x}:00 — %{y} positions<extra></extra>",
+        x=hours, y=[1] * len(coverage), marker_color=colours,
+        hovertext=hover, hovertemplate="%{hovertext}<extra></extra>",
     ))
     fig.update_layout(
-        xaxis_title="local hour", yaxis_title="positions landed",
-        margin=dict(l=0, r=0, t=10, b=0), height=240,
-        xaxis=dict(tickmode="linear", dtick=2),
+        margin=dict(l=0, r=0, t=10, b=0), height=130, bargap=0.15, showlegend=False,
+        xaxis=dict(title="local hour", tickmode="linear", dtick=2),
+        yaxis=dict(visible=False, range=[0, 1]),
     )
     return fig
 
@@ -109,15 +137,16 @@ def map_deck(cells: list[dict[str, Any]]) -> pdk.Deck:
 
 
 def partial_day_note(coverage: list[dict[str, Any]]) -> str | None:
-    """A caption when the day has unobserved or not-fully-covered hours, else None."""
-    missing = [r["hour"] for r in coverage if not r.get("observed", True)]
-    partial = [r["hour"] for r in coverage
-               if r.get("observed", True) and not r["is_fully_covered"]]
-    if not missing and not partial:
+    """A caption when the day is not fully collected, else None. Keyed on volume:
+    an hour with no positions is 'no data', one with some but not a full hour is
+    'partially covered' — matching the colours of the coverage strip."""
+    no_data = [r for r in coverage if r["positions"] == 0]
+    partial = [r for r in coverage if r["positions"] > 0 and not r["is_fully_covered"]]
+    if not no_data and not partial:
         return None
     bits = []
-    if missing:
-        bits.append(f"{len(missing)} hour(s) with no data")
+    if no_data:
+        bits.append(f"{len(no_data)} hour(s) with no data")
     if partial:
-        bits.append(f"{len(partial)} hour(s) not fully covered")
-    return "Partial day: " + ", ".join(bits) + " — see the coverage view below."
+        bits.append(f"{len(partial)} hour(s) partially covered")
+    return "Partial day: " + ", ".join(bits) + " — see the coverage strip below."

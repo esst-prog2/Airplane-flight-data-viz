@@ -13,6 +13,18 @@ DATE_RANGE_SQL = """
     FROM mart.fact_position_snapshot
 """
 
+# the latest local day whose every hour is fully covered -- a complete day to open
+# on (NULL if none; the caller then falls back to the latest day with data)
+DEFAULT_DAY_SQL = """
+    WITH per_day AS (
+        SELECT (hour_start_utc AT TIME ZONE 'Europe/Budapest')::date AS d,
+               count(*) FILTER (WHERE is_fully_covered) AS full_hours
+        FROM mart.fact_hourly_coverage
+        GROUP BY 1
+    )
+    SELECT max(d) FROM per_day WHERE full_hours >= 24
+"""
+
 # dataset-wide headline totals for the KPI band
 KPIS_SQL = """
     SELECT
