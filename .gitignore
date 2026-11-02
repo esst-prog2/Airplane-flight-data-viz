@@ -10,3 +10,6 @@ Flights-backups/
 
 # downloaded source files (catalogues etc.): large, reproducible from the source
 data/
+
+# dev-built dashboard snapshot (the final one is shipped deliberately in chunk 5)
+flights_snapshot.sqlite

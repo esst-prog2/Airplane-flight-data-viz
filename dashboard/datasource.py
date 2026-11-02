@@ -163,6 +163,83 @@ class ApiSource:
         return {"by_type": d["by_type"], "by_country": d["by_country"]}
 
 
+class SnapshotSource:
+    """Reads a frozen SQLite snapshot (built by build_snapshot.py) — the offline
+    form's backend. No server, no live database: the whole dataset is the one
+    file. The aggregates were pre-computed at build time, so the queries here are
+    simple reads of per-day tables. Mirrors the DbSource/ApiSource shapes exactly."""
+
+    def __init__(self, path: str) -> None:
+        self._path = path
+
+    def _conn(self):
+        import sqlite3
+
+        return sqlite3.connect(self._path)
+
+    def date_range(self) -> tuple[dt.date | None, dt.date | None]:
+        with self._conn() as c:
+            row = c.execute("SELECT date_min, date_max FROM meta").fetchone()
+        if not row or row[0] is None:
+            return (None, None)
+        return (dt.date.fromisoformat(row[0]), dt.date.fromisoformat(row[1]))
+
+    def default_day(self) -> dt.date | None:
+        with self._conn() as c:
+            row = c.execute("SELECT default_day FROM meta").fetchone()
+        return dt.date.fromisoformat(row[0]) if row and row[0] else None
+
+    def kpis(self) -> dict[str, Any]:
+        keys = ("positions", "transits", "distinct_aircraft", "days", "catalog_coverage_pct")
+        with self._conn() as c:
+            row = c.execute(
+                "SELECT kpi_positions, kpi_transits, kpi_distinct_aircraft, "
+                "kpi_days, kpi_catalog_coverage_pct FROM meta"
+            ).fetchone()
+        if not row:
+            return {k: None for k in keys}
+        return {k: (int(v) if v is not None else None) for k, v in zip(keys, row)}
+
+    def day_curve(self, day: dt.date) -> list[dict[str, Any]]:
+        with self._conn() as c:
+            rows = c.execute(
+                "SELECT hour, aircraft FROM day_curve WHERE day = ?", (day.isoformat(),)
+            ).fetchall()
+        got = {int(h): int(a) for h, a in rows}
+        return [{"hour": h, "aircraft": got.get(h, 0)} for h in range(24)]
+
+    def day_coverage(self, day: dt.date) -> list[dict[str, Any]]:
+        with self._conn() as c:
+            rows = c.execute(
+                "SELECT hour, is_fully_covered, positions, observed "
+                "FROM day_coverage WHERE day = ?", (day.isoformat(),)
+            ).fetchall()
+        got = {int(h): (bool(f), int(p), bool(o)) for h, f, p, o in rows}
+        out = []
+        for h in range(24):
+            f, p, o = got.get(h, (False, 0, False))
+            out.append({"hour": h, "is_fully_covered": f, "positions": p, "observed": o})
+        return out
+
+    def day_breakdown(self, day: dt.date) -> dict[str, list[dict[str, Any]]]:
+        with self._conn() as c:
+            rows = c.execute(
+                "SELECT kind, label, positions FROM day_breakdown WHERE day = ? "
+                "ORDER BY positions DESC", (day.isoformat(),)
+            ).fetchall()
+        return {
+            "by_type": [{"label": l, "positions": int(p)} for k, l, p in rows if k == "type"],
+            "by_country": [{"label": l, "positions": int(p)} for k, l, p in rows if k == "country"],
+        }
+
+    def day_map(self, day: dt.date) -> list[dict[str, Any]]:
+        with self._conn() as c:
+            rows = c.execute(
+                "SELECT h3, lat, lon, count FROM day_map WHERE day = ?", (day.isoformat(),)
+            ).fetchall()
+        return [{"h3": h, "lat": lat, "lon": lon, "count": int(cnt)} for h, lat, lon, cnt in rows]
+
+
 def bin_h3(points: list[tuple], resolution: int) -> list[dict[str, Any]]:
     """Aggregate (lat, lon) rows into H3 cells, returning each cell's id, centre
     and count. Pre-aggregating here keeps the raw points out of every response."""
