@@ -23,6 +23,15 @@ import streamlit as st
 # package absolutely (the package's own relative imports then resolve normally).
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# convenience for local `streamlit run`: pick up DATABASE_URL from .env. Harmless
+# in production, where env vars are set directly and python-dotenv may be absent.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ModuleNotFoundError:
+    pass
+
 from dashboard import views
 from dashboard.datasource import ApiSource, DbSource
 
