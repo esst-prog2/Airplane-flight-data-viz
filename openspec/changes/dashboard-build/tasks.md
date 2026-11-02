@@ -26,9 +26,9 @@
 
 ## 4. Offline form (frozen snapshot)
 
-- [ ] 4.1 Implement the snapshot-build script: run the aggregation queries over the data and write per-day aggregate tables into a SQLite file (no raw positions, no `owner`); verify the file opens and a spot-check day matches the live query
-- [ ] 4.2 Implement `SnapshotSource` reading the SQLite file; verify the dashboard renders identical views from the snapshot and from `DbSource` for the same day
-- [ ] 4.3 Prepare the Streamlit Community Cloud entrypoint (reads the bundled snapshot, pinned requirements); verify the app runs against the snapshot with no database reachable
+- [x] 4.1 Implement the snapshot-build script `dashboard/build_snapshot.py` (D3 = SQLite): reads the mart via `DbSource` and writes per-day aggregate tables (map/curve/coverage/breakdown + a meta row) into one SQLite file, no raw positions and no `owner`; verified a test build opens and reads back identically to the live query, and a dev build is 5.08 MB for 48 days
+- [x] 4.2 Implement `SnapshotSource` (stdlib `sqlite3`) reading the file; verified it reads back identically to `DbSource` for the same day (date range, default day, KPIs, curve, coverage, breakdown, map) in `tests/test_dashboard_snapshot.py`
+- [x] 4.3 Wire the offline entrypoint: `app.make_source()` selects `SnapshotSource` when `DASHBOARD_SNAPSHOT` is set (API → snapshot → DB); verified via AppTest that the app runs end to end from the snapshot alone with `DATABASE_URL` unset (KPIs and all four views render). Streamlit Cloud deploy (pinned requirements, bundled file) is wired in chunk 5
 
 ## 5. Deploy, documentation, and the final publish
 

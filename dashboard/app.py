@@ -33,13 +33,17 @@ except ModuleNotFoundError:
     pass
 
 from dashboard import views
-from dashboard.datasource import ApiSource, DbSource
+from dashboard.datasource import ApiSource, DbSource, SnapshotSource
 
 
 def make_source():
+    # first match wins: live API -> frozen snapshot (offline form) -> direct DB
     api_url = os.environ.get("DASHBOARD_API_URL")
     if api_url:
         return ApiSource(api_url)
+    snapshot = os.environ.get("DASHBOARD_SNAPSHOT")
+    if snapshot:
+        return SnapshotSource(snapshot)
     return DbSource(os.environ["DATABASE_URL"])
 
 
