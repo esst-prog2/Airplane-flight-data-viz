@@ -29,11 +29,13 @@ def get_source() -> DbSource:
 @app.get("/meta")
 def meta(src: DbSource = Depends(get_source)) -> dict:
     lo, hi = src.date_range()
+    default = src.default_day()
     return {
         "date_range": {
             "min": lo.isoformat() if lo else None,
             "max": hi.isoformat() if hi else None,
         },
+        "default_day": default.isoformat() if default else None,
         "kpis": src.kpis(),
     }
 

@@ -35,10 +35,12 @@ def client(db, db_url):
     api.app.dependency_overrides.clear()
 
 
-def test_meta_reports_range_and_kpis(client):
+def test_meta_reports_range_kpis_and_default_day(client):
     m = client.get("/meta").json()
     assert m["date_range"]["min"] == DAY.isoformat()
     assert m["date_range"]["max"] == DAY.isoformat()
+    # the seeded day is not fully covered, so default_day falls back to the latest day
+    assert m["default_day"] == DAY.isoformat()
     assert m["kpis"]["positions"] >= 1
 
 
@@ -78,6 +80,7 @@ def test_apisource_agrees_with_dbsource(client, db_url):
     api_src = ApiSource(base_url="", client=client)   # client = the TestClient
     db_src = DbSource(db_url)
     assert api_src.date_range() == db_src.date_range()
+    assert api_src.default_day() == db_src.default_day()
     assert api_src.kpis() == db_src.kpis()
     assert api_src.day_curve(DAY) == db_src.day_curve(DAY)
     assert api_src.day_coverage(DAY) == db_src.day_coverage(DAY)

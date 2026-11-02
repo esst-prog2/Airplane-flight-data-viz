@@ -37,6 +37,9 @@ class DataSource(Protocol):
     def date_range(self) -> tuple[dt.date | None, dt.date | None]:
         """Earliest and latest local day that has data (None, None if empty)."""
 
+    def default_day(self) -> dt.date | None:
+        """The day to open on: the latest fully-covered day, else the latest day."""
+
     def kpis(self) -> dict[str, Any]:
         """Dataset-wide headline totals for the KPI band."""
 
@@ -72,6 +75,12 @@ class DbSource:
     def date_range(self) -> tuple[dt.date | None, dt.date | None]:
         (lo, hi), = self._rows(queries.DATE_RANGE_SQL)
         return (sk_to_date(lo), sk_to_date(hi))
+
+    def default_day(self) -> dt.date | None:
+        (d,), = self._rows(queries.DEFAULT_DAY_SQL)   # a date, or None if no full day
+        if d is not None:
+            return d
+        return self.date_range()[1]                   # fall back to the latest day
 
     def kpis(self) -> dict[str, Any]:
         row, = self._rows(queries.KPIS_SQL)
@@ -132,6 +141,10 @@ class ApiSource:
         lo = dt.date.fromisoformat(d["min"]) if d["min"] else None
         hi = dt.date.fromisoformat(d["max"]) if d["max"] else None
         return (lo, hi)
+
+    def default_day(self) -> dt.date | None:
+        d = self._get("/meta")["default_day"]
+        return dt.date.fromisoformat(d) if d else None
 
     def kpis(self) -> dict[str, Any]:
         return self._get("/meta")["kpis"]

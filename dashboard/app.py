@@ -44,10 +44,16 @@ def make_source():
 
 
 @st.cache_data(ttl=600)
-def load_meta() -> tuple[str | None, str | None, dict]:
+def load_meta() -> tuple[str | None, str | None, str | None, dict]:
     src = make_source()
     lo, hi = src.date_range()
-    return (lo.isoformat() if lo else None, hi.isoformat() if hi else None, src.kpis())
+    default = src.default_day()
+    return (
+        lo.isoformat() if lo else None,
+        hi.isoformat() if hi else None,
+        default.isoformat() if default else None,
+        src.kpis(),
+    )
 
 
 @st.cache_data(ttl=600)
@@ -68,7 +74,7 @@ def main() -> None:
     st.caption("A queryable history built from OpenSky snapshots over a fixed "
                "Central European box.")
 
-    lo_iso, hi_iso, kpis = load_meta()
+    lo_iso, hi_iso, default_iso, kpis = load_meta()
     if not lo_iso or not hi_iso:
         st.warning("No data in the mart yet.")
         return
@@ -78,7 +84,9 @@ def main() -> None:
         col.metric(label, value)
 
     lo, hi = dt.date.fromisoformat(lo_iso), dt.date.fromisoformat(hi_iso)
-    picked = st.date_input("Day (local time)", value=hi, min_value=lo, max_value=hi)
+    # open on the latest fully-covered day, so the first view is a complete one
+    default_day = dt.date.fromisoformat(default_iso) if default_iso else hi
+    picked = st.date_input("Day (local time)", value=default_day, min_value=lo, max_value=hi)
     day = picked[0] if isinstance(picked, tuple) else picked
 
     data = load_day(day.isoformat())
