@@ -25,12 +25,12 @@
 
 ## 3. `flights build`
 
-- [ ] 3.1 Implement the `build` subcommand: over `DATABASE_URL` run
+- [x] 3.1 Implement the `build` subcommand: over `DATABASE_URL` run
   `staging.ingest_snapshots()` then `mart.load_fact_position_snapshot()`,
   `mart.load_fact_flight_transit()`, `mart.load_fact_hourly_coverage()` in order, printing
   each step's returned count; stop and exit non-zero on the first failing step. Add
   `--with-dims` to first run the four `mart.load_dim_*()` functions.
-- [ ] 3.2 Add the build summary: after the loads, run a read-only query for flight segments
+- [x] 3.2 Add the build summary: after the loads, run a read-only query for flight segments
   in the last 24 h and the share joined to a non-unknown `dim_aircraft`, and print it;
   verify in `tests/test_cli.py` against a seeded mart that `build` runs the steps in order,
   prints per-step counts and the summary line, and that `--with-dims` loads dimensions first.
