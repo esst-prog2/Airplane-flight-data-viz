@@ -106,9 +106,94 @@ def cmd_ingest(args):
     return 0
 
 
+def _run_step(conn, label, sql, fetch=lambda row: row[0]):
+    """Run one build step; on failure raise an error that names the step."""
+    try:
+        return fetch(conn.execute(sql).fetchone())
+    except Exception as exc:  # noqa: BLE001 - re-raised with the step label
+        raise RuntimeError(f"build step '{label}' failed: {exc}") from exc
+
+
+def run_build(conn, with_dims=False):
+    """Build the warehouse on `conn`; return (steps, summary).
+
+    Runs the same chain as deploy/mart_build.sh -- staging ingest then the three
+    mart fact loads, in dependency order. With `with_dims` it loads the four mart
+    dimensions first (for a build against an empty warehouse). Each load is
+    incremental and idempotent. Stops at the first failing step (the error, which
+    names that step, propagates). `steps` is a list of (label, count); `summary`
+    reports the last 24 h of data (relative to the most recent observation, so it
+    matches "the last 24 hours" on a live database).
+    """
+    steps = []
+
+    if with_dims:
+        steps.append(("dim_date", _run_step(conn, "dim_date", "SELECT mart.load_dim_date()")))
+        steps.append(("dim_time_of_day",
+                      _run_step(conn, "dim_time_of_day", "SELECT mart.load_dim_time_of_day()")))
+        steps.append(("dim_region",
+                      _run_step(conn, "dim_region", "SELECT mart.load_dim_region()")))
+        steps.append(("dim_aircraft",
+                      _run_step(conn, "dim_aircraft",
+                                "SELECT inserted, updated FROM mart.load_dim_aircraft()",
+                                fetch=lambda row: row[0] + row[1])))
+
+    steps.append(("staging",
+                  _run_step(conn, "staging",
+                            "SELECT accepted FROM staging.ingest_snapshots()")))
+    steps.append(("fact_position_snapshot",
+                  _run_step(conn, "fact_position_snapshot",
+                            "SELECT mart.load_fact_position_snapshot()")))
+    steps.append(("fact_flight_transit",
+                  _run_step(conn, "fact_flight_transit",
+                            "SELECT mart.load_fact_flight_transit()")))
+    steps.append(("fact_hourly_coverage",
+                  _run_step(conn, "fact_hourly_coverage",
+                            "SELECT mart.load_fact_hourly_coverage()")))
+
+    segments, known_pct = conn.execute(
+        """
+        WITH recent AS (
+            SELECT aircraft_sk FROM mart.fact_flight_transit
+            WHERE last_seen_at > (SELECT max(last_seen_at) FROM mart.fact_flight_transit)
+                                 - interval '24 hours'
+        )
+        SELECT count(*),
+               round(100.0 * count(*) FILTER (WHERE a.type_designator <> 'Unknown')
+                     / NULLIF(count(*), 0), 1)
+        FROM recent r JOIN mart.dim_aircraft a USING (aircraft_sk)
+        """
+    ).fetchone()
+
+    return steps, {"segments": segments, "known_type_pct": known_pct if known_pct is not None else 0.0}
+
+
+def _print_build_summary(steps, summary):
+    width = max(len(label) for label, _ in steps) + 1
+    for label, count in steps:
+        print(f"{label + ':':<{width}} {count}")
+    print()
+    print(
+        f"last 24h of data: {summary['segments']} flight segments, "
+        f"{summary['known_type_pct']}% matched to a known aircraft type"
+    )
+
+
 def cmd_build(args):
-    """Run the staging + mart fact loads and print a summary. (Chunk 3.)"""
-    raise NotImplementedError("flights build is implemented in a later chunk")
+    """Run the staging + mart fact loads over DATABASE_URL and print a summary."""
+    import os
+
+    import psycopg
+
+    dsn = os.environ.get("DATABASE_URL")
+    if not dsn:
+        print("DATABASE_URL is not set.", file=sys.stderr)
+        return 2
+
+    with psycopg.connect(dsn, autocommit=True) as conn:
+        steps, summary = run_build(conn, with_dims=args.with_dims)
+    _print_build_summary(steps, summary)
+    return 0
 
 
 def cmd_run(args):
