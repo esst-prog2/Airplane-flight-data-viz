@@ -11,10 +11,11 @@ Raw payload layout (OpenSky state vector): index 0 icao24, 1 callsign,
 """
 
 import json
+import sys
 
 import pytest
 
-from flights.cli import _run_step, ingest_once, run_build
+from flights.cli import REPO_ROOT, _run_step, ingest_once, run_build, run_collector
 
 T = 1_800_000_000
 
@@ -145,3 +146,32 @@ def test_build_without_dims_skips_the_dimension_loads(db):
 def test_build_step_failure_names_the_step(db):
     with pytest.raises(RuntimeError, match=r"build step 'boom' failed"):
         _run_step(db, "boom", "SELECT 1 / 0")
+
+
+# --- run -----------------------------------------------------------------------
+
+def test_run_launches_run_loop_with_the_current_interpreter():
+    calls = []
+
+    class _Completed:
+        returncode = 0
+
+    def fake_runner(argv):
+        calls.append(argv)
+        return _Completed()
+
+    rc = run_collector(fake_runner)
+
+    assert rc == 0
+    assert len(calls) == 1
+    argv = calls[0]
+    assert argv[0] == sys.executable          # same Python, as a subprocess...
+    assert argv[1].endswith("run_loop.py")    # ...running run_loop.py (not imported)
+    assert str(REPO_ROOT) in argv[1]
+
+
+def test_run_interrupt_returns_control():
+    def interrupting_runner(_argv):
+        raise KeyboardInterrupt
+
+    assert run_collector(interrupting_runner) == 0

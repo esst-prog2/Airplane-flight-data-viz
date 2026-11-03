@@ -196,9 +196,35 @@ def cmd_build(args):
     return 0
 
 
+def run_collector(runner=None):
+    """Launch the continuous collector (run_loop.py) as a subprocess.
+
+    run_loop.py runs its polling loop at import time, so it cannot be imported --
+    we start it as a child process with the current interpreter, inheriting stdio
+    so its prints and Ctrl-C behave as if run directly. A Ctrl-C/interrupt stops
+    collection and returns control (exit 0). `runner` is the function used to run
+    the child (default subprocess.run), injected for testing.
+    """
+    if runner is None:
+        import subprocess
+
+        runner = subprocess.run
+
+    script = REPO_ROOT / "run_loop.py"
+    if not script.exists():
+        print(f"run_loop.py not found at {script}", file=sys.stderr)
+        return 2
+
+    try:
+        completed = runner([sys.executable, str(script)])
+    except KeyboardInterrupt:
+        return 0
+    return getattr(completed, "returncode", 0)
+
+
 def cmd_run(args):
-    """Start the continuous collector as a subprocess. (Chunk 4.)"""
-    raise NotImplementedError("flights run is implemented in a later chunk")
+    """Start the continuous collector (polls until interrupted)."""
+    return run_collector()
 
 
 def build_parser():

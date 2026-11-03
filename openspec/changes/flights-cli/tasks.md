@@ -37,7 +37,7 @@
 
 ## 4. `flights run`
 
-- [ ] 4.1 Implement the `run` subcommand to launch `run_loop.py` as a subprocess
+- [x] 4.1 Implement the `run` subcommand to launch `run_loop.py` as a subprocess
   (`subprocess.run([sys.executable, "<root>/run_loop.py"])`, inheriting stdio); verify with
   a test that patches `subprocess.run` that `flights run` invokes `run_loop.py` with the
   current interpreter (not imported), and that Ctrl-C/interrupt returns control.
