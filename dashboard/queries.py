@@ -25,16 +25,24 @@ DEFAULT_DAY_SQL = """
     SELECT max(d) FROM per_day WHERE full_hours >= 24
 """
 
-# dataset-wide headline totals for the KPI band
+# dataset-wide headline totals for the KPI band. The four position-based figures
+# are computed in ONE pass over fact_position_snapshot (the old form scanned it
+# four times); only the transit count needs its own table.
 KPIS_SQL = """
-    SELECT
-        (SELECT count(*) FROM mart.fact_position_snapshot),
-        (SELECT count(*) FROM mart.fact_flight_transit),
-        (SELECT count(DISTINCT aircraft_sk) FROM mart.fact_position_snapshot),
-        (SELECT count(DISTINCT snapshot_date_sk_local) FROM mart.fact_position_snapshot),
-        (SELECT round(100.0 * count(*) FILTER (WHERE aircraft_sk <> 0)
-                      / NULLIF(count(*), 0), 1)
-           FROM mart.fact_position_snapshot)
+    WITH p AS (
+        SELECT count(*)                                AS positions,
+               count(DISTINCT aircraft_sk)             AS distinct_aircraft,
+               count(DISTINCT snapshot_date_sk_local)  AS days,
+               round(100.0 * count(*) FILTER (WHERE aircraft_sk <> 0)
+                     / NULLIF(count(*), 0), 1)         AS catalog_coverage_pct
+        FROM mart.fact_position_snapshot
+    )
+    SELECT p.positions,
+           (SELECT count(*) FROM mart.fact_flight_transit),
+           p.distinct_aircraft,
+           p.days,
+           p.catalog_coverage_pct
+    FROM p
 """
 
 # distinct aircraft present per local hour on the selected day
