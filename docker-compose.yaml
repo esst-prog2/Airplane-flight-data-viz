@@ -20,5 +20,40 @@ services:
       - postgres
     restart: unless-stopped
 
+  # Read-only API over the mart (FastAPI), connecting as the flights_ro role.
+  # Not published: only the dashboard reaches it, on the internal compose network.
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: flights_api
+    env_file: .env
+    environment:
+      DASHBOARD_DSN: postgresql://flights_ro:${FLIGHTS_RO_PASSWORD}@postgres:5432/flights
+    command: uvicorn dashboard.api:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # Live Streamlit dashboard. Reads the API, with a direct read-only DB fallback.
+  # Published on localhost only; Caddy (see deploy docs) terminates HTTPS in front.
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: flights_dashboard
+    env_file: .env
+    environment:
+      DASHBOARD_API_URL: http://api:8000
+      DASHBOARD_DSN: postgresql://flights_ro:${FLIGHTS_RO_PASSWORD}@postgres:5432/flights
+    command: >
+      streamlit run dashboard/app.py
+      --server.port 8501 --server.address 0.0.0.0 --server.headless true
+    ports:
+      - "127.0.0.1:8501:8501"
+    depends_on:
+      - api
+    restart: unless-stopped
+
 volumes:
   pgdata:

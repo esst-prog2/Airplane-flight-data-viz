@@ -33,18 +33,26 @@ except ModuleNotFoundError:
     pass
 
 from dashboard import views
-from dashboard.datasource import ApiSource, DbSource, SnapshotSource
+from dashboard.datasource import ApiSource, DbSource, FallbackSource, SnapshotSource
 
 
 def make_source():
-    # first match wins: live API -> frozen snapshot (offline form) -> direct DB
+    # first match wins: live API (with a direct-DB fallback if a DSN is set) ->
+    # frozen snapshot (offline form) -> direct DB.
     api_url = os.environ.get("DASHBOARD_API_URL")
-    if api_url:
-        return ApiSource(api_url)
     snapshot = os.environ.get("DASHBOARD_SNAPSHOT")
+    dsn = os.environ.get("DASHBOARD_DSN") or os.environ.get("DATABASE_URL")
+    if api_url:
+        api = ApiSource(api_url)
+        return FallbackSource(api, DbSource(dsn)) if dsn else api
     if snapshot:
         return SnapshotSource(snapshot)
-    return DbSource(os.environ["DATABASE_URL"])
+    if not dsn:
+        raise RuntimeError(
+            "no data source: set DASHBOARD_API_URL, DASHBOARD_SNAPSHOT, "
+            "or DATABASE_URL / DASHBOARD_DSN"
+        )
+    return DbSource(dsn)
 
 
 @st.cache_data(ttl=600)

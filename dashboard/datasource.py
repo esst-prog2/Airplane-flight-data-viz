@@ -240,6 +240,43 @@ class SnapshotSource:
         return [{"h3": h, "lat": lat, "lon": lon, "count": int(cnt)} for h, lat, lon, cnt in rows]
 
 
+class FallbackSource:
+    """Tries a primary source and, when a call raises, falls back to a secondary
+    one. Used live with the API as primary and a direct read-only DB connection
+    as the fallback, so the dashboard still renders if the API is down."""
+
+    def __init__(self, primary: Any, secondary: Any) -> None:
+        self._primary = primary
+        self._secondary = secondary
+
+    def _call(self, name: str, *args: Any) -> Any:
+        try:
+            return getattr(self._primary, name)(*args)
+        except Exception:
+            return getattr(self._secondary, name)(*args)
+
+    def date_range(self) -> tuple[dt.date | None, dt.date | None]:
+        return self._call("date_range")
+
+    def default_day(self) -> dt.date | None:
+        return self._call("default_day")
+
+    def kpis(self) -> dict[str, Any]:
+        return self._call("kpis")
+
+    def day_map(self, day: dt.date) -> list[dict[str, Any]]:
+        return self._call("day_map", day)
+
+    def day_curve(self, day: dt.date) -> list[dict[str, Any]]:
+        return self._call("day_curve", day)
+
+    def day_coverage(self, day: dt.date) -> list[dict[str, Any]]:
+        return self._call("day_coverage", day)
+
+    def day_breakdown(self, day: dt.date) -> dict[str, list[dict[str, Any]]]:
+        return self._call("day_breakdown", day)
+
+
 def bin_h3(points: list[tuple], resolution: int) -> list[dict[str, Any]]:
     """Aggregate (lat, lon) rows into H3 cells, returning each cell's id, centre
     and count. Pre-aggregating here keeps the raw points out of every response."""

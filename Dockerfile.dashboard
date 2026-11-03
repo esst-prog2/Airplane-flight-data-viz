@@ -1,0 +1,12 @@
+# Image for the live dashboard and its read-only API (dashboard-build chunk 5).
+# Both the `api` and `dashboard` services use this image; each sets its own
+# command in docker-compose. The collector has its own Dockerfile and is
+# untouched.
+FROM python:3.13-slim
+
+WORKDIR /app
+
+COPY requirements-dashboard.txt .
+RUN pip install --no-cache-dir -r requirements-dashboard.txt
+
+COPY dashboard/ ./dashboard/

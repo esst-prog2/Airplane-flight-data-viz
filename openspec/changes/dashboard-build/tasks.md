@@ -32,7 +32,7 @@
 
 ## 5. Deploy, documentation, and the final publish
 
-- [ ] 5.1 Add the dashboard+API container to `docker compose`; verify it builds and serves the views locally
+- [x] 5.1 Add the dashboard+API services to `docker compose` (new `Dockerfile.dashboard`; `api` = uvicorn on the `flights_ro` role, internal only; `dashboard` = streamlit, API-backed with a direct-DB `FallbackSource`, published on `127.0.0.1:8501`); verified `docker compose config` is valid, the image builds, and the container serves (Streamlit health = ok). Fallback covered by `tests/test_dashboard_fallback.py`
 - [ ] 5.2 Deploy the live form on the VPS behind the chosen exposure (Caddy or `IP:port`) reading the API with DB fallback (user runs the VPS writes); verify the live URL shows the most recent day
 - [ ] 5.3 After collection ends (late Nov 2026): rebuild the frozen snapshot from the final data and publish the offline form to Streamlit Community Cloud; verify the public URL opens with no login and shows the final data
 - [ ] 5.4 Update `README.md`: move the dashboard out of "Not yet built" into the built section and add both URLs; verify the Status section matches what is deployed
