@@ -38,11 +38,18 @@ What actually runs today, as opposed to the target shape described in [Vision](#
 - **Permanent offline form** (not yet published) — a public, no-login version on Streamlit Community Cloud, served from a **frozen SQLite snapshot** of pre-aggregated per-day view data ([dashboard/build_snapshot.py](dashboard/build_snapshot.py)), built once from the final data when collection ends. A few MB, needs no live database; shows every day and view but cannot run analyses that were not pre-computed. May later run live instead, if a free always-on host is found.
 - **Tests** — [tests/test_dashboard_api.py](tests/test_dashboard_api.py), [tests/test_dashboard_views.py](tests/test_dashboard_views.py), [tests/test_dashboard_snapshot.py](tests/test_dashboard_snapshot.py), [tests/test_dashboard_fallback.py](tests/test_dashboard_fallback.py).
 
+**Built (the `flights` CLI, since 2026-11-03):**
+- **`flights` command** — a single command-line entry point over the pipeline, installed once with `pip install -e .` (a console entry point; no new runtime dependency). Three subcommands:
+  - `flights ingest --once` — lands one raw poll via the frozen collector, runs the staging ingest, and prints what landed and what was refused (by reason).
+  - `flights build` — runs the staging ingest and the three mart fact loads (the same chain as [deploy/mart_build.sh](deploy/mart_build.sh)); `--with-dims` loads the four dimensions first. Prints per-step counts and a summary (flight segments in the last 24 h of data and the share matched to a known aircraft type).
+  - `flights run` — starts the continuous collector (`run_loop.py`) as a subprocess.
+
+  It wraps the frozen `ingest.py` / `run_loop.py` without modifying them (`ingest` is imported, `run_loop` is subprocessed because its loop runs at import); the VPS cron keeps running the `deploy/*.sh` scripts, so the CLI is a convenience/demo layer, not the production scheduler. Code in [flights/](flights/), packaged by [pyproject.toml](pyproject.toml); tests in [tests/test_cli.py](tests/test_cli.py).
+
 **Not yet built** (see [Vision](#vision) for the target shape):
-- A `flights` CLI (`flights ingest --once`, `flights build`) — today you run `python ingest.py` or `python run_loop.py` directly, and the mart is built by the deploy scripts above
 - Airport catalogue ingestion (OurAirports) — deliberately deferred; the aircraft catalogue comes first
 
-**Next step:** publish the permanent offline dashboard to Streamlit Community Cloud from the final data once collection ends (late Nov 2026); the `flights` CLI and the airport catalogue remain optional extras.
+**Next step:** publish the permanent offline dashboard to Streamlit Community Cloud from the final data once collection ends (late Nov 2026); the airport catalogue remains an optional extra.
 
 ## Vision
 

@@ -44,9 +44,9 @@
 
 ## 5. Documentation
 
-- [ ] 5.1 Update `README.md`: move the `flights` CLI from "Not yet built" into the built
+- [x] 5.1 Update `README.md`: move the `flights` CLI from "Not yet built" into the built
   section, document the one-time `pip install -e .` and the three commands, and confirm the
   "The demo" commands now match reality; verify the README reflects what is built and append
   the outcome to `PLANNING_LOG.md`.
-- [ ] 5.2 Run the full test suite (`pytest`) and confirm it is green (including the new CLI
+- [x] 5.2 Run the full test suite (`pytest`) and confirm it is green (including the new CLI
   tests) with no new runtime dependency added to `requirements.txt`.
