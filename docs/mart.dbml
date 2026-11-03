@@ -1,0 +1,168 @@
+// Airplane-flight-data-viz -- the mart (Kimball star schema)
+// Paste into https://dbdiagram.io/d to render. Four conformed dimensions and
+// three fact tables; the facts reference the dimensions. Date and time are
+// role-playing dimensions (UTC vs local; entry vs exit), so several fact
+// columns point at the same dim_date / dim_time_of_day. Columns and types are
+// taken as-is from sql/mart/.
+
+Project flights_mart {
+  database_type: 'PostgreSQL'
+  Note: 'Central European air traffic: snapshots stitched into a star schema (mart).'
+}
+
+// ---------- Dimensions ----------
+
+Table dim_date {
+  date_sk integer [pk, note: 'YYYYMMDD']
+  full_date date [not null, unique]
+  day_of_month smallint [not null]
+  day_of_week_num smallint [not null]
+  day_name_en varchar [not null]
+  day_name_hu varchar [not null]
+  iso_week_year smallint [not null]
+  week_of_year smallint [not null]
+  month_num smallint [not null]
+  month_name_en varchar [not null]
+  month_name_hu varchar [not null]
+  quarter smallint [not null]
+  year smallint [not null]
+  is_weekend boolean [not null]
+  is_holiday_hu boolean [not null]
+  season varchar [not null]
+  is_dst_local boolean [not null]
+  utc_offset_minutes_local smallint [not null]
+  is_dst_switch_day boolean [not null]
+}
+
+Table dim_time_of_day {
+  time_sk integer [pk, note: '0..1439, minute of day']
+  hour_24 smallint [not null]
+  minute smallint [not null]
+  quarter_hour smallint [not null]
+  time_label char(5) [not null]
+  hour_label char(5) [not null]
+  time_of_day varchar [not null]
+  time_of_day_hu varchar [not null]
+  is_business_hour boolean [not null]
+  is_peak_traffic boolean [not null]
+  shift_label varchar [not null]
+}
+
+Table dim_region {
+  region_sk integer [pk]
+  region_code varchar [not null]
+  region_name_en varchar [not null]
+  region_name_hu varchar [not null]
+  bbox_min_latitude numeric(9,6) [not null]
+  bbox_max_latitude numeric(9,6) [not null]
+  bbox_min_longitude numeric(9,6) [not null]
+  bbox_max_longitude numeric(9,6) [not null]
+  bbox_area_km2 integer [not null]
+  valid_from timestamptz [not null]
+  valid_to timestamptz
+  is_current boolean [not null]
+}
+
+Table dim_aircraft {
+  aircraft_sk bigint [pk, note: '0 = unknown member']
+  icao24 char(6) [unique, note: 'NULL only for the unknown member']
+  registration varchar [not null]
+  type_designator varchar [not null]
+  model varchar [not null]
+  aircraft_category varchar [not null]
+  operator varchar [not null]
+  operator_icao varchar [not null]
+  owner varchar [not null]
+  registration_country varchar [not null]
+  in_catalog boolean [not null]
+  loaded_at timestamptz [not null]
+}
+
+// ---------- Facts ----------
+
+Table fact_position_snapshot {
+  snapshot_sk bigint [pk]
+  aircraft_sk bigint [not null, ref: > dim_aircraft.aircraft_sk]
+  region_sk integer [not null, ref: > dim_region.region_sk]
+  snapshot_date_sk_utc integer [not null, ref: > dim_date.date_sk]
+  snapshot_date_sk_local integer [not null, ref: > dim_date.date_sk]
+  snapshot_time_of_day_sk_utc integer [not null, ref: > dim_time_of_day.time_sk]
+  snapshot_time_of_day_sk_local integer [not null, ref: > dim_time_of_day.time_sk]
+  icao24 char(6) [not null]
+  callsign varchar
+  squawk varchar
+  position_source smallint
+  origin_country varchar
+  raw_id bigint [not null]
+  time_position_utc timestamptz [not null]
+  last_contact_utc timestamptz
+  snapshot_time timestamptz [not null]
+  latitude numeric(9,6) [not null]
+  longitude numeric(9,6) [not null]
+  baro_altitude_m real
+  geo_altitude_m real
+  velocity_mps real
+  true_track_deg real
+  vertical_rate_mps real
+  on_ground boolean [not null]
+  is_altitude_missing boolean [not null]
+  is_altitude_implausible boolean [not null]
+  is_position_stale boolean [not null]
+  is_callsign_missing boolean [not null]
+  loaded_at timestamptz [not null]
+
+  indexes {
+    (icao24, time_position_utc) [unique]
+  }
+}
+
+Table fact_flight_transit {
+  flight_transit_sk bigint [pk]
+  aircraft_sk bigint [not null, ref: > dim_aircraft.aircraft_sk]
+  region_sk integer [not null, ref: > dim_region.region_sk]
+  entry_date_sk_utc integer [not null, ref: > dim_date.date_sk]
+  entry_date_sk_local integer [not null, ref: > dim_date.date_sk]
+  entry_time_of_day_sk_utc integer [not null, ref: > dim_time_of_day.time_sk]
+  entry_time_of_day_sk_local integer [not null, ref: > dim_time_of_day.time_sk]
+  exit_date_sk_utc integer [not null, ref: > dim_date.date_sk]
+  exit_date_sk_local integer [not null, ref: > dim_date.date_sk]
+  icao24 char(6) [not null]
+  callsign varchar
+  first_seen_at timestamptz [not null]
+  last_seen_at timestamptz [not null]
+  snapshot_count integer [not null]
+  duration_minutes numeric(10,2) [not null]
+  distance_km numeric(10,2) [not null]
+  max_altitude_m real
+  min_altitude_m real
+  avg_altitude_m real
+  max_velocity_mps real
+  avg_velocity_mps real
+  is_start_truncated boolean [not null]
+  is_end_truncated boolean [not null]
+  segmentation_gap_s smallint [not null]
+  built_at timestamptz [not null]
+
+  indexes {
+    (icao24, first_seen_at) [unique]
+  }
+}
+
+Table fact_hourly_coverage {
+  coverage_sk bigint [pk]
+  region_sk integer [not null, ref: > dim_region.region_sk]
+  date_sk integer [not null, ref: > dim_date.date_sk]
+  time_of_day_sk integer [not null, ref: > dim_time_of_day.time_sk]
+  hour_start_utc timestamptz [not null]
+  distinct_polls integer [not null]
+  distinct_snapshots integer [not null]
+  expected_polls integer [not null]
+  positions_landed integer [not null]
+  is_fully_covered boolean [not null]
+  is_partial_hour boolean [not null]
+  built_at timestamptz [not null]
+
+  indexes {
+    (region_sk, hour_start_utc) [unique]
+  }
+}
