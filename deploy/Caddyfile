@@ -1,0 +1,8 @@
+# Caddy reverse proxy for the live dashboard, with automatic HTTPS.
+# Caddy obtains and renews a free Let's Encrypt certificate for the domain, then
+# proxies HTTPS to the Streamlit container on the internal compose network.
+# DASHBOARD_DOMAIN (a DuckDNS subdomain pointing at the VPS) comes from .env;
+# ports 80 and 443 must be open and the domain must resolve to the VPS.
+{$DASHBOARD_DOMAIN} {
+	reverse_proxy dashboard:8501
+}
