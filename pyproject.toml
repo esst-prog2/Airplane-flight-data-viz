@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flights"
+version = "0.1.0"
+description = "Command-line interface for the Airplane-flight-data-viz pipeline"
+requires-python = ">=3.11"
+# No runtime dependencies declared here: the CLI only calls code that the existing
+# requirements.txt already installs (psycopg, requests, python-dotenv). Keeping this
+# empty means `pip install -e .` adds the `flights` command without pulling anything new.
+dependencies = []
+
+[project.scripts]
+flights = "flights.cli:main"
+
+# Package only the `flights` package. The repo has several top-level modules and
+# packages (ingest.py, run_loop.py, dashboard/, scripts/); without this, setuptools'
+# flat-layout auto-discovery would refuse to guess. The frozen root modules are reached
+# at runtime via a sys.path insert in flights/cli.py, not by packaging them here.
+[tool.setuptools]
+packages = ["flights"]
