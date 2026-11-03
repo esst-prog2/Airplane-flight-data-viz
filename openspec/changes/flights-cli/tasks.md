@@ -14,11 +14,11 @@
 
 ## 2. `flights ingest --once`
 
-- [ ] 2.1 Implement the `ingest` subcommand: call `ingest.main()` to land one raw poll, then
+- [x] 2.1 Implement the `ingest` subcommand: call `ingest.main()` to land one raw poll, then
   run `staging.ingest_snapshots()` over `DATABASE_URL`, and print raw rows landed plus the
   accepted and rejected counts with rejects grouped by reason (from `staging.rejects`);
   a fetch or DB failure exits non-zero without reporting success.
-- [ ] 2.2 Add `tests/test_cli.py` coverage for `ingest`: on a throwaway/seeded DB (reuse the
+- [x] 2.2 Add `tests/test_cli.py` coverage for `ingest`: on a throwaway/seeded DB (reuse the
   staging test helpers), verify the command runs the staging ingest and prints the landed /
   accepted / rejected-by-reason summary, and that a simulated fetch failure exits non-zero;
   verify the test passes.
