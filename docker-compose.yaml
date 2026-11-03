@@ -55,5 +55,24 @@ services:
       - api
     restart: unless-stopped
 
+  # Reverse proxy with automatic HTTPS (Let's Encrypt) in front of the dashboard.
+  # Serves the domain in DASHBOARD_DOMAIN; needs ports 80/443 open and DNS set.
+  caddy:
+    image: caddy:2
+    container_name: flights_caddy
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - dashboard
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
