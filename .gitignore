@@ -3,6 +3,11 @@ __pycache__/
 *.pyc
 .venv/
 
+# Python build / editable-install artifacts (from `pip install -e .`)
+*.egg-info/
+build/
+dist/
+
 # database dumps and backups must never be committed
 *.dump
 *.sql.gz
