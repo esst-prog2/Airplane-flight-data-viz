@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Central European Air Traffic</title>
+<meta name="description" content="A live map of the planes over Central Europe, backed by a data warehouse recording the sky every two minutes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#070b16;
+    --ground-2:#0b1120;
+    --panel:#0e1526;
+    --text:#eaf0fb;
+    --dim:#9fb2d4;            /* blue-tinted secondary, ~7:1 on --ground */
+    --faint:#9aaccd;
+    --cyan:#5cd0ff;           /* cool end of the density ramp */
+    --amber:#ffb454;          /* warm end / primary accent */
+    --line:rgba(120,150,210,.16);
+    --maxw:72rem;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--ground);color:var(--text);
+    font-family:"Hanken Grotesk",system-ui,sans-serif;font-size:17px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:rgba(92,208,255,.28);color:#fff}
+  ::-webkit-scrollbar{width:12px;height:12px}
+  ::-webkit-scrollbar-track{background:var(--ground)}
+  ::-webkit-scrollbar-thumb{background:#1c2740;border:3px solid var(--ground);border-radius:99px}
+  ::-webkit-scrollbar-thumb:hover{background:#27344f}
+  a{color:var(--cyan);text-decoration:none}
+  a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:4px}
+  h1,h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;letter-spacing:-.03em;line-height:1.02;margin:0}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(16px,5vw,40px)}
+  .num{font-family:"Space Mono",monospace;font-variant-numeric:tabular-nums;color:var(--text)}
+
+  /* ---------- top bar ---------- */
+  .top{position:relative;z-index:3;display:flex;justify-content:space-between;align-items:center;
+    padding:22px clamp(16px,5vw,40px);max-width:var(--maxw);margin:0 auto}
+  .brand{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;letter-spacing:.02em;font-size:15px;color:var(--dim)}
+  .brand b{color:var(--text);font-weight:600}
+  .ghlink{display:inline-flex;align-items:center;gap:8px;color:var(--dim);font-size:14px}
+  .ghlink:hover{color:var(--text)}
+  .ghlink svg{width:18px;height:18px}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;min-height:86vh;display:flex;align-items:center;isolation:isolate}
+  .sky{position:absolute;inset:0;z-index:-1;overflow:hidden;background:
+    radial-gradient(130% 80% at 72% 18%, rgba(92,208,255,.12), transparent 58%),
+    radial-gradient(90% 70% at 20% 92%, rgba(255,180,84,.10), transparent 55%),
+    linear-gradient(180deg,#060912,#070b16 60%,#090d1a)}
+  .sky svg{position:absolute;inset:0;width:100%;height:100%}
+  .arc{fill:none;stroke-linecap:round;opacity:.9}
+  .node{transform-box:fill-box;transform-origin:center}
+  @keyframes drift{from{transform:translateY(0)}to{transform:translateY(-10px)}}
+  @keyframes draw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+  @keyframes breathe{0%,100%{opacity:.35}50%{opacity:.9}}
+  .skyfloat{animation:drift 14s ease-in-out infinite alternate}
+  .arc{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw 2.2s cubic-bezier(.16,1,.3,1) forwards}
+  .arc.a2{animation-delay:.35s}.arc.a3{animation-delay:.7s}
+  .twinkle{animation:breathe 6s ease-in-out infinite}
+  .twinkle.t2{animation-delay:1.4s}.twinkle.t3{animation-delay:2.6s}.twinkle.t4{animation-delay:3.7s}
+
+  .hero .wrap{position:relative}
+  h1{font-size:clamp(2.6rem,8vw,5.5rem);max-width:15ch}
+  .lede{margin:26px 0 0;max-width:46ch;font-size:clamp(1.05rem,2.3vw,1.3rem);color:var(--dim);line-height:1.5}
+  .cta{display:flex;flex-wrap:wrap;gap:16px;margin-top:38px}
+  .btn{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:16px;
+    padding:14px 22px;border-radius:12px;border:1px solid transparent;cursor:pointer;
+    transition:transform .18s cubic-bezier(.16,1,.3,1), box-shadow .18s, background .18s, border-color .18s}
+  .btn svg{width:18px;height:18px}
+  .btn-primary{background:var(--amber);color:#201403;box-shadow:0 12px 26px -12px rgba(0,0,0,.7)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 30px -12px rgba(0,0,0,.7)}
+  .btn-ghost{color:var(--text);border-color:#273249;background:rgba(18,26,44,.5)}
+  .btn-ghost:hover{border-color:var(--cyan);color:#fff;transform:translateY(-2px)}
+  .livedot{display:inline-flex;align-items:center;gap:8px;margin-top:30px;font-size:13px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--faint)}
+  .livedot i{width:8px;height:8px;border-radius:99px;background:var(--cyan)}
+
+  /* ---------- sections ---------- */
+  section.band{padding:clamp(64px,10vw,120px) 0;border-top:1px solid var(--line)}
+  .eyebrow-none{}
+  h2{font-size:clamp(1.8rem,4vw,2.9rem)}
+  .sub{color:var(--dim);max-width:52ch;margin:18px 0 0;font-size:1.1rem}
+
+  .shot{display:block;margin:44px 0 10px;border-radius:14px;overflow:hidden;border:1px solid #223049;
+    background:#0c1322;box-shadow:0 30px 60px -32px rgba(0,0,0,.85);
+    transition:transform .2s cubic-bezier(.16,1,.3,1),border-color .2s}
+  .shot:hover{transform:translateY(-3px);border-color:#31486c}
+  .shot .bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#0e1626;border-bottom:1px solid #1b263d}
+  .shot .url{font-family:"Space Mono",monospace;font-size:12.5px;color:var(--dim);background:#0a1120;
+    border:1px solid #1b263d;padding:5px 12px;border-radius:999px}
+  .shot .open{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--faint)}
+  .shot .open svg{width:13px;height:13px}
+  .shot img{display:block;width:100%;height:auto}
+  .see{display:grid;grid-template-columns:repeat(2,1fr);gap:28px 40px;margin-top:48px}
+  .see li{list-style:none;display:flex;gap:16px;align-items:flex-start}
+  .see .ic{flex:none;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#101a30,#0c1324);border:1px solid var(--line)}
+  .see .ic svg{width:22px;height:22px;stroke:var(--cyan)}
+  .see h3{margin:0 0 4px;font-family:"Bricolage Grotesque",sans-serif;font-size:1.06rem;font-weight:600}
+  .see p{margin:0;color:var(--dim);font-size:.98rem;line-height:1.5}
+  .nologin{margin-top:40px;color:var(--faint);font-size:.95rem}
+  ul{padding:0;margin:0}
+
+  /* under the hood */
+  .hood{margin-top:52px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:
+    linear-gradient(180deg,rgba(14,21,38,.7),rgba(10,15,28,.7))}
+  .row{display:grid;grid-template-columns:200px 1fr;gap:28px;padding:26px clamp(20px,3vw,34px);
+    border-top:1px solid var(--line)}
+  .row:first-child{border-top:0}
+  .row .k{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;color:var(--text);font-size:1.02rem}
+  .row .v{color:var(--dim);font-size:1rem;line-height:1.55}
+  .row .v b{color:var(--text);font-weight:600}
+  .hood-more{margin-top:28px;color:var(--dim)}
+
+  /* final cta */
+  .final{text-align:center}
+  .final h2{max-width:18ch;margin:0 auto}
+  .final .cta{justify-content:center;margin-top:34px}
+
+  footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--faint);font-size:.9rem}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between;align-items:center}
+  footer .num{color:var(--dim)}
+
+  @media (max-width:720px){
+    .see{grid-template-columns:1fr}
+    .row{grid-template-columns:1fr;gap:6px;padding:22px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .skyfloat,.arc,.twinkle,.livedot i,.btn{animation:none;transition:none}
+    .arc{stroke-dashoffset:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <span class="brand"><b>Central European Air Traffic</b></span>
+  <a class="ghlink" href="https://github.com/esst-prog2/Airplane-flight-data-viz" target="_blank" rel="noopener">
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+    GitHub
+  </a>
+</div>
+
+<main>
+  <section class="hero">
+    <div class="sky" aria-hidden="true">
+      <svg class="skyfloat" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#5cd0ff"/><stop offset="1" stop-color="#ffb454"/>
+          </linearGradient>
+          <radialGradient id="glow"><stop offset="0" stop-color="#5cd0ff" stop-opacity=".9"/><stop offset="1" stop-color="#5cd0ff" stop-opacity="0"/></radialGradient>
+          <radialGradient id="glowA"><stop offset="0" stop-color="#ffb454" stop-opacity=".9"/><stop offset="1" stop-color="#ffb454" stop-opacity="0"/></radialGradient>
+        </defs>
+        <!-- faint flight arcs across the region -->
+        <path class="arc"  style="--len:1500" d="M120 640 C 420 420, 760 540, 1080 220" stroke="url(#g1)" stroke-width="1.6"/>
+        <path class="arc a2" style="--len:1400" d="M60 420 C 360 520, 720 300, 1140 400" stroke="#5cd0ff" stroke-width="1.1" opacity=".5"/>
+        <path class="arc a3" style="--len:1300" d="M220 760 C 500 620, 820 700, 1120 560" stroke="#ffb454" stroke-width="1.1" opacity=".45"/>
+        <!-- glowing nodes, like the density map -->
+        <g>
+          <circle cx="760" cy="540" r="60" fill="url(#glow)" class="twinkle"/>
+          <circle cx="1080" cy="220" r="52" fill="url(#glowA)" class="twinkle t2"/>
+          <circle cx="360" cy="470" r="46" fill="url(#glow)" class="twinkle t3"/>
+          <circle cx="540" cy="300" r="40" fill="url(#glow)" class="twinkle t4"/>
+          <circle cx="760" cy="540" r="3.5" fill="#dff4ff"/>
+          <circle cx="1080" cy="220" r="3.5" fill="#fff0da"/>
+          <circle cx="360" cy="470" r="3" fill="#dff4ff"/>
+          <circle cx="540" cy="300" r="3" fill="#dff4ff"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="wrap">
+      <h1>The sky over Central Europe, on the record.</h1>
+      <p class="lede">A live map of the planes over Central Europe, backed by a data warehouse that has been quietly recording the sky every two minutes since September 2026.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://flights-ce.duckdns.org" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+          Open the live dashboard
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/esst-prog2/Airplane-flight-data-viz" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          See the code on GitHub
+        </a>
+      </div>
+      <div class="livedot"><i></i> Live now &middot; no login</div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <h2>What you see</h2>
+      <p class="sub">Pick any day and explore the sky over Central Europe.</p>
+      <a class="shot" href="https://flights-ce.duckdns.org" target="_blank" rel="noopener">
+        <span class="bar">
+          <span class="url">flights-ce.duckdns.org</span>
+          <span class="open">open live <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
+        </span>
+        <img src="dashboard.png" width="1867" height="802" loading="lazy" alt="The live dashboard: a hexagon traffic-density map over Central Europe, with a daily-presence curve and collection-coverage strip.">
+      </a>
+      <ul class="see">
+        <li>
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 3v18M4 7.5l8 4.5 8-4.5"/></svg></span>
+          <div><h3>A hexagon density map</h3><p>Where the traffic was, in 3D, for the day you pick.</p></div>
+        </li>
+        <li>
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M7 16l4-5 3 3 5-7"/></svg></span>
+          <div><h3>A daily curve</h3><p>How many aircraft were up, hour by hour.</p></div>
+        </li>
+        <li>
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span>
+          <div><h3>Types and countries</h3><p>Which aircraft, from where, were overhead.</p></div>
+        </li>
+        <li>
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18V6M20 18V6M8 18v-6M12 18V9M16 18v-4"/><path d="M12 9l0 0" opacity="0"/></svg></span>
+          <div><h3>Collection gaps</h3><p>The honest bit: where the recording missed an hour.</p></div>
+        </li>
+      </ul>
+      <p class="nologin">No login, runs in your browser.</p>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <h2>Under the hood</h2>
+      <p class="sub">The map is the easy part. Behind it is a small data-engineering pipeline.</p>
+      <div class="hood">
+        <div class="row"><div class="k">Continuous collection</div><div class="v">Polls the live OpenSky feed <b>every 2 minutes</b> over a fixed Central European box, landing every snapshot. A day not collected is lost for good.</div></div>
+        <div class="row"><div class="k">Cleaned and organized</div><div class="v">Raw snapshots are validated into a staging layer, then stitched into flights.</div></div>
+        <div class="row"><div class="k">Star-schema warehouse</div><div class="v">A Kimball dimensional model in <b>PostgreSQL</b> (facts + dimensions), <span class="num">7.7M+</span> position rows, rebuilt <b>hourly</b>.</div></div>
+        <div class="row"><div class="k">Stack</div><div class="v">Python, PostgreSQL, Docker; served by FastAPI + Streamlit behind Caddy / HTTPS on a small VPS.</div></div>
+      </div>
+      <p class="hood-more">Want the details? The full project, design docs and SQL are <a href="https://github.com/esst-prog2/Airplane-flight-data-viz" target="_blank" rel="noopener">on GitHub</a>.</p>
+    </div>
+  </section>
+
+  <section class="band final">
+    <div class="wrap">
+      <h2>See what was in the air.</h2>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://flights-ce.duckdns.org" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+          Open the live dashboard
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/esst-prog2/Airplane-flight-data-viz" target="_blank" rel="noopener">GitHub repository</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Built as a data-engineering project, kept running live.</span>
+    <span class="num">bbox 45&ndash;50&deg;N &middot; 12&ndash;23&deg;E</span>
+  </div>
+</footer>
+
+</body>
+</html>
