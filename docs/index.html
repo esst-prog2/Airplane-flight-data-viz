@@ -7,7 +7,7 @@
 <meta name="description" content="A live map of the planes over Central Europe, backed by a data warehouse recording the sky every two minutes.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --ground:#070b16;
@@ -25,7 +25,7 @@
   html{scroll-behavior:smooth}
   body{
     margin:0;background:var(--ground);color:var(--text);
-    font-family:Inter,system-ui,sans-serif;font-size:17px;line-height:1.6;
+    font-family:"Hanken Grotesk",system-ui,sans-serif;font-size:17px;line-height:1.6;
     -webkit-font-smoothing:antialiased;overflow-x:hidden;
   }
   ::selection{background:rgba(92,208,255,.28);color:#fff}
@@ -35,14 +35,14 @@
   ::-webkit-scrollbar-thumb:hover{background:#27344f}
   a{color:var(--cyan);text-decoration:none}
   a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:4px}
-  h1,h2{font-family:"Space Grotesk",sans-serif;font-weight:700;letter-spacing:-.03em;line-height:1.02;margin:0}
+  h1,h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;letter-spacing:-.03em;line-height:1.02;margin:0}
   .wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(16px,5vw,40px)}
   .num{font-family:"Space Mono",monospace;font-variant-numeric:tabular-nums;color:var(--text)}
 
   /* ---------- top bar ---------- */
   .top{position:relative;z-index:3;display:flex;justify-content:space-between;align-items:center;
     padding:22px clamp(16px,5vw,40px);max-width:var(--maxw);margin:0 auto}
-  .brand{font-family:"Space Grotesk",sans-serif;font-weight:600;letter-spacing:.02em;font-size:15px;color:var(--dim)}
+  .brand{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;letter-spacing:.02em;font-size:15px;color:var(--dim)}
   .brand b{color:var(--text);font-weight:600}
   .ghlink{display:inline-flex;align-items:center;gap:8px;color:var(--dim);font-size:14px}
   .ghlink:hover{color:var(--text)}
@@ -80,9 +80,7 @@
   .btn-ghost:hover{border-color:var(--cyan);color:#fff;transform:translateY(-2px)}
   .livedot{display:inline-flex;align-items:center;gap:8px;margin-top:30px;font-size:13px;letter-spacing:.14em;
     text-transform:uppercase;color:var(--faint)}
-  .livedot i{width:8px;height:8px;border-radius:99px;background:var(--cyan);box-shadow:0 0 0 0 rgba(92,208,255,.6);
-    animation:ping 2.4s ease-out infinite}
-  @keyframes ping{0%{box-shadow:0 0 0 0 rgba(92,208,255,.5)}70%,100%{box-shadow:0 0 0 7px rgba(92,208,255,0)}}
+  .livedot i{width:8px;height:8px;border-radius:99px;background:var(--cyan)}
 
   /* ---------- sections ---------- */
   section.band{padding:clamp(64px,10vw,120px) 0;border-top:1px solid var(--line)}
@@ -95,7 +93,7 @@
   .see .ic{flex:none;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;
     background:linear-gradient(160deg,#101a30,#0c1324);border:1px solid var(--line)}
   .see .ic svg{width:22px;height:22px;stroke:var(--cyan)}
-  .see h3{margin:0 0 4px;font-family:"Space Grotesk",sans-serif;font-size:1.06rem;font-weight:600}
+  .see h3{margin:0 0 4px;font-family:"Bricolage Grotesque",sans-serif;font-size:1.06rem;font-weight:600}
   .see p{margin:0;color:var(--dim);font-size:.98rem;line-height:1.5}
   .nologin{margin-top:40px;color:var(--faint);font-size:.95rem}
   ul{padding:0;margin:0}
@@ -106,7 +104,7 @@
   .row{display:grid;grid-template-columns:200px 1fr;gap:28px;padding:26px clamp(20px,3vw,34px);
     border-top:1px solid var(--line)}
   .row:first-child{border-top:0}
-  .row .k{font-family:"Space Grotesk",sans-serif;font-weight:600;color:var(--text);font-size:1.02rem}
+  .row .k{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;color:var(--text);font-size:1.02rem}
   .row .v{color:var(--dim);font-size:1rem;line-height:1.55}
   .row .v b{color:var(--text);font-weight:600}
   .hood-more{margin-top:28px;color:var(--dim)}
