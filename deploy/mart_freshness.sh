@@ -8,10 +8,15 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$REPO_DIR"
 
-# make .env values (ALERT_WEBHOOK_URL) available when started from cron, which
-# does not read .env; harmless when run by hand with the var already exported.
-[ -f .env ] && { set -a; . ./.env; set +a; }
+# Read ALERT_WEBHOOK_URL for cron, which does not inherit .env. Pull only that one
+# key instead of shell-sourcing the whole file: a malformed .env line (a character
+# the shell treats specially, e.g. an unquoted '<') once aborted this script before
+# it could alert, so the freshness check that should have caught a frozen mart died
+# on the same line. Reading one key with grep cannot execute anything.
 WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
+if [ -z "$WEBHOOK_URL" ] && [ -f .env ]; then
+    WEBHOOK_URL="$(grep -E '^[[:space:]]*ALERT_WEBHOOK_URL=' .env | tail -n1 | cut -d= -f2-)"
+fi
 THRESHOLD="${MART_FRESHNESS_THRESHOLD_MINUTES:-180}"
 
 row="$(docker compose exec -T postgres psql -U flights -d flights -At -F '|' \
