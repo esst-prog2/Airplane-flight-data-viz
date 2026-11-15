@@ -47,10 +47,10 @@ What actually runs today, as opposed to the target shape described in [Vision](#
 
   It wraps the frozen `ingest.py` / `run_loop.py` without modifying them (`ingest` is imported, `run_loop` is subprocessed because its loop runs at import); the VPS cron keeps running the `deploy/*.sh` scripts, so the CLI is a convenience/demo layer, not the production scheduler. Code in [flights/](flights/), packaged by [pyproject.toml](pyproject.toml); tests in [tests/test_cli.py](tests/test_cli.py).
 
-**Not yet built** (see [Vision](#vision) for the target shape):
-- Airport catalogue ingestion (OurAirports) — deliberately deferred; the aircraft catalogue comes first
+**Deliberately out of scope:**
+- Airport catalogue ingestion (OurAirports) — considered and dropped. Because inferring origin and destination airports from the track is an explicit non-goal (see [Vision](#vision) below), a `dim_airport` dimension would have no fact table to join to: it would add schema without analytical value. The `in between` line of the Vision that mentions joining to airport catalogues is the original target, overridden here with this reason.
 
-**Next step:** publish the permanent offline dashboard to Streamlit Community Cloud from the final data once collection ends (late Nov 2026); the airport catalogue remains an optional extra.
+**Next step:** publish the permanent offline dashboard to Streamlit Community Cloud from the final data once collection ends (late Nov 2026). That is the one remaining task.
 
 ## Vision
 
