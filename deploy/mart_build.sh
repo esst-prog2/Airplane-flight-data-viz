@@ -18,10 +18,15 @@ fi
 
 cd "$REPO_DIR"
 
-# make .env values (ALERT_WEBHOOK_URL) available when started from cron, which
-# does not read .env; harmless when run by hand with the var already exported.
-[ -f .env ] && { set -a; . ./.env; set +a; }
+# Read ALERT_WEBHOOK_URL for cron, which does not inherit .env. Pull only that one
+# key instead of shell-sourcing the whole file: a malformed .env line (a character
+# the shell treats specially, e.g. an unquoted '<') once aborted this script before
+# the SQL and silently froze the mart for ~2 weeks, while the alert that should have
+# caught it died on the same line. Reading one key with grep cannot execute anything.
 WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
+if [ -z "$WEBHOOK_URL" ] && [ -f .env ]; then
+    WEBHOOK_URL="$(grep -E '^[[:space:]]*ALERT_WEBHOOK_URL=' .env | tail -n1 | cut -d= -f2-)"
+fi
 
 ts() { date -u '+%Y-%m-%d %H:%M:%S UTC'; }
 
