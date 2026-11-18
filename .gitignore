@@ -18,3 +18,6 @@ data/
 
 # dev-built dashboard snapshot (the final one is shipped deliberately in chunk 5)
 flights_snapshot.sqlite
+
+# local HyperFrames render workspace (scaffold + node deps; the composition source is video/index.html)
+video-render/

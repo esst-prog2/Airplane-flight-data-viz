@@ -98,6 +98,8 @@
   .shot .open{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--faint)}
   .shot .open svg{width:13px;height:13px}
   .shot img{display:block;width:100%;height:auto}
+  .film{display:block;width:100%;height:auto;margin-top:44px;border-radius:16px;
+    border:1px solid #223049;background:#0c1322;box-shadow:0 30px 60px -32px rgba(0,0,0,.85)}
   .see{display:grid;grid-template-columns:repeat(2,1fr);gap:28px 40px;margin-top:48px}
   .see li{list-style:none;display:flex;gap:16px;align-items:flex-start}
   .see .ic{flex:none;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;
@@ -192,6 +194,18 @@
         </a>
       </div>
       <div class="livedot"><i></i> Live now &middot; no login</div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <h2>See a whole day in thirty seconds</h2>
+      <p class="sub">The sky over Central Europe filling and emptying, hour by hour.</p>
+      <video class="film" poster="promo-poster.jpg" autoplay muted loop playsinline controls preload="metadata" width="1920" height="1080">
+        <source src="promo.mp4" type="video/mp4">
+        Your browser can&rsquo;t play this video. <a href="promo.mp4">Download it</a>.
+      </video>
+      <p class="nologin">A stylized time-lapse of the real daily traffic pattern &mdash; explore the actual data on the <a href="https://flights-ce.duckdns.org" target="_blank" rel="noopener">live dashboard</a>.</p>
     </div>
   </section>
 
