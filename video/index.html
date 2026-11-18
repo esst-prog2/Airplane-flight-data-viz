@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<!--
+  HyperFrames composition: "A day over Central Europe" (30s, 1080p, silent).
+  A deterministic data time-lapse for the project's promo page. One paused GSAP
+  timeline drives a master progress 0..1 over 30s; onUpdate redraws the whole
+  scene from that progress (no wall-clock, no randomness), so every frame the
+  renderer seeks is reproducible. The hour sweeps 03:00 -> 03:00 (a full day from
+  the pre-dawn trough), the hexagon density map blooms to the midday peak and
+  fades, the daily curve draws, and an "aircraft overhead" counter follows the
+  real daily-presence shape (peak ~806 distinct aircraft at 12:00).
+  Render: `npx hyperframes render --output promo.mp4` (needs Node 22+, FFmpeg, Chrome).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Hanken+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+  :root{
+    --ground:#070b16; --text:#eaf0fb; --dim:#bccbe6; --cyan:#5cd0ff; --amber:#ffb454;
+  }
+  body{margin:0}
+  #root{position:relative;width:1920px;height:1080px;overflow:hidden;
+    background:
+      radial-gradient(120% 80% at 70% 15%, rgba(92,208,255,.10), transparent 58%),
+      radial-gradient(90% 70% at 22% 95%, rgba(255,180,84,.08), transparent 55%),
+      linear-gradient(180deg,#060912,#070b16 60%,#090d1a);
+    font-family:"Hanken Grotesk",system-ui,sans-serif;color:var(--text)}
+  .clip{position:absolute;inset:0}
+
+  /* map + hexes */
+  #map{position:absolute;inset:0}
+  .hex{position:absolute;width:62px;height:70px;
+    clip-path:polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    will-change:opacity,transform;}
+  .frame{position:absolute;border:1px solid rgba(120,150,210,.14);border-radius:14px}
+
+  /* chrome / HUD */
+  .kicker{position:absolute;left:84px;top:72px;font-family:"Space Mono",monospace;
+    font-size:22px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  #clock{position:absolute;left:84px;top:104px;font-family:"Space Mono",monospace;
+    font-weight:700;font-size:140px;line-height:1;color:#fff;letter-spacing:-.02em}
+  #clocklabel{position:absolute;left:92px;top:250px;font-size:22px;color:var(--dim);letter-spacing:.04em}
+  #count{position:absolute;right:84px;top:118px;text-align:right;
+    font-family:"Space Mono",monospace;font-weight:700;font-size:92px;color:var(--amber);line-height:1}
+  #countlabel{position:absolute;right:84px;top:218px;text-align:right;font-size:22px;color:var(--dim)}
+
+  /* daily-curve panel */
+  #curvewrap{position:absolute;left:84px;bottom:72px;width:560px;height:150px}
+  #curvewrap .cap{font-size:20px;color:var(--dim);margin-bottom:8px;letter-spacing:.03em}
+  #curve{display:block;width:560px;height:118px}
+  #peakband{fill:rgba(255,180,84,.08)}
+  #curvebase{fill:none;stroke:rgba(120,150,210,.28);stroke-width:2}
+  #curvelit{fill:none;stroke:var(--amber);stroke-width:3.5;stroke-linecap:round}
+  #curvedot{fill:#fff}
+
+  /* intro + end card */
+  #intro{position:absolute;left:84px;bottom:260px;font-family:"Bricolage Grotesque",sans-serif;
+    font-weight:700;font-size:40px;color:var(--text);letter-spacing:-.02em}
+  #endcard{position:absolute;inset:0;display:grid;place-items:center;text-align:center;opacity:0}
+  #endcard .inner{max-width:1200px}
+  #endcard h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;
+    font-size:112px;letter-spacing:-.03em;margin:0;line-height:1.02}
+  #endcard .sub{margin:26px 0 0;font-size:34px;color:var(--dim)}
+  #endcard .url{margin-top:40px;display:inline-block;font-family:"Space Mono",monospace;
+    font-size:30px;color:#201403;background:var(--amber);padding:16px 30px;border-radius:14px}
+  .scrim{position:absolute;inset:0;background:rgba(6,9,18,.62);opacity:0}
+</style>
+</head>
+<body>
+  <div id="root" data-composition-id="main" data-start="0" data-duration="30"
+       data-width="1920" data-height="1080" data-fps="30">
+    <section id="scene" class="clip" data-start="0" data-duration="30">
+      <div class="frame" style="left:420px;top:210px;width:1080px;height:640px"></div>
+      <div id="map"><div id="hexlayer"></div></div>
+
+      <div class="kicker">A day over Central Europe &middot; sped up</div>
+      <div id="clock">03:00</div>
+      <div id="clocklabel">local time</div>
+      <div id="count">0</div>
+      <div id="countlabel">aircraft overhead (approx.)</div>
+
+      <div id="intro">From a quiet pre-dawn sky to the midday rush, and back.</div>
+
+      <div id="curvewrap">
+        <div class="cap">Distinct aircraft, hour by hour</div>
+        <svg id="curve" viewBox="0 0 560 118" preserveAspectRatio="none">
+          <rect id="peakband" x="0" y="0" width="0" height="118"></rect>
+          <polyline id="curvebase" points=""></polyline>
+          <polyline id="curvelit" points=""></polyline>
+          <circle id="curvedot" cx="0" cy="0" r="5"></circle>
+        </svg>
+      </div>
+
+      <div class="scrim"></div>
+      <div id="endcard">
+        <div class="inner">
+          <h1>Central European Air Traffic</h1>
+          <div class="sub">7.7M+ positions, recorded every two minutes since September 2026.</div>
+          <div class="url">flights-ce.duckdns.org</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+  (async function () {
+    try { await document.fonts.ready; } catch (e) {}
+
+    // --- real daily-presence shape: fraction of the 12:00 peak, per local hour ---
+    const CURVE = [0.28,0.20,0.15,0.12,0.12,0.18,0.35,0.55,0.72,0.85,0.93,0.98,
+                   1.00,0.98,0.95,0.92,0.90,0.85,0.80,0.68,0.55,0.45,0.38,0.32];
+    const PEAK_AIRCRAFT = 806;
+    function activityAt(hour){
+      hour = ((hour % 24) + 24) % 24;
+      const i = Math.floor(hour), f = hour - i;
+      return CURVE[i] * (1 - f) + CURVE[(i + 1) % 24] * f;
+    }
+    // deterministic value noise (no Math.random; reproducible every render)
+    function hash(n){ const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); }
+
+    // --- build the hex density field over the map frame ---
+    const MAP = { x: 470, y: 250, w: 980, h: 560 };
+    const hexW = 62, hexH = 70, colStep = 66, rowStep = 52;
+    const cols = Math.floor(MAP.w / colStep), rows = Math.floor(MAP.h / rowStep);
+    const cx0 = MAP.x + MAP.w / 2, cy0 = MAP.y + MAP.h / 2;
+    // two "busy" centres to shape the glow like real corridors
+    const hot = [ {x: cx0 - 40, y: cy0 - 10, s: 300}, {x: cx0 - 230, y: cy0 - 150, s: 190} ];
+    const layer = document.getElementById('hexlayer');
+    const hexes = [];
+    for (let r = 0; r < rows; r++){
+      for (let c = 0; c < cols; c++){
+        const px = MAP.x + 8 + c * colStep + (r % 2 ? colStep / 2 : 0);
+        const py = MAP.y + 6 + r * rowStep;
+        const mx = px + hexW / 2, my = py + hexH / 2;
+        // elliptical cull -> a soft region blob, not a rectangle
+        const nx = (mx - cx0) / (MAP.w / 2), ny = (my - cy0) / (MAP.h / 2);
+        if (nx * nx + ny * ny > 1.02) continue;
+        let w = 0;
+        for (const h of hot){ const d2 = (mx - h.x) ** 2 + (my - h.y) ** 2; w += Math.exp(-d2 / (2 * h.s * h.s)); }
+        w = Math.min(1, w) * (0.55 + 0.45 * hash(r * 31.7 + c)); // fixed per-cell variation
+        const el = document.createElement('div');
+        el.className = 'hex';
+        el.style.left = px + 'px';
+        el.style.top = py + 'px';
+        layer.appendChild(el);
+        hexes.push({ el, w, thr: 0.08 + (1 - w) * 0.5, ph: hash(c * 7.3 + r * 2.1) });
+      }
+    }
+
+    // --- daily-curve panel geometry ---
+    const CW = 560, CH = 118, pad = 6;
+    const xAt = h => pad + (h / 24) * (CW - 2 * pad);
+    const yAt = v => (CH - pad) - v * (CH - 2 * pad);
+    let basePts = '';
+    for (let h = 0; h <= 24; h++){ basePts += xAt(h) + ',' + yAt(activityAt(h % 24)) + ' '; }
+    document.getElementById('curvebase').setAttribute('points', basePts.trim());
+    const peak = document.getElementById('peakband');
+    peak.setAttribute('x', xAt(10)); peak.setAttribute('width', xAt(18) - xAt(10));
+    const litLine = document.getElementById('curvelit');
+    const dot = document.getElementById('curvedot');
+
+    const clock = document.getElementById('clock');
+    const count = document.getElementById('count');
+    const intro = document.getElementById('intro');
+    const endcard = document.getElementById('endcard');
+    const scrim = document.querySelector('.scrim');
+
+    function lerp(a, b, t){ return a + (b - a) * t; }
+    // cool cyan -> warm amber by intensity
+    function colour(t){ return [Math.round(lerp(92,255,t)), Math.round(lerp(208,180,t)), Math.round(lerp(255,84,t))]; }
+
+    const DAY = 0.84; // fraction of the clip spent on the day sweep; the rest is the end card
+
+    function draw(p){
+      const dayP = Math.min(p / DAY, 1);
+      const hour = 3 + dayP * 24;                 // 03:00 -> 03:00 next day
+      const act = activityAt(hour);
+
+      const hm = ((hour % 24) + 24) % 24;
+      const hh = Math.floor(hm), mm = Math.floor((hm - hh) * 60);
+      clock.textContent = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+      count.textContent = Math.round(act * PEAK_AIRCRAFT).toLocaleString('en-US');
+
+      for (const h of hexes){
+        const local = act * h.w;
+        // gentle, deterministic shimmer tied to progress (not wall-clock)
+        const shimmer = 0.92 + 0.08 * Math.sin((dayP * 6.283 * 3) + h.ph * 6.283);
+        let lit = (local - h.thr) / (1 - h.thr);
+        lit = Math.max(0, Math.min(1, lit)) * shimmer;
+        const [r, g, b] = colour(lit);
+        h.el.style.background = 'rgba(' + r + ',' + g + ',' + b + ',' + (0.10 + lit * 0.9).toFixed(3) + ')';
+        h.el.style.transform = 'scale(' + (0.82 + lit * 0.32).toFixed(3) + ')';
+        h.el.style.boxShadow = lit > 0.04 ? '0 0 ' + (10 + lit * 26).toFixed(0) + 'px rgba(' + r + ',' + g + ',' + b + ',' + (lit * 0.6).toFixed(3) + ')' : 'none';
+      }
+
+      // reveal the daily curve up to the current hour
+      let litPts = '';
+      const upto = Math.max(0, Math.min(24, (hour)));
+      for (let h = 0; h <= Math.floor(upto); h++){ litPts += xAt(h) + ',' + yAt(activityAt(h % 24)) + ' '; }
+      litPts += xAt(upto) + ',' + yAt(activityAt(upto % 24));
+      litLine.setAttribute('points', litPts.trim());
+      dot.setAttribute('cx', xAt(upto)); dot.setAttribute('cy', yAt(activityAt(upto % 24)));
+
+      // intro line fades out over the first ~4s; HUD fades as the end card arrives
+      intro.style.opacity = (1 - Math.min(1, Math.max(0, (p - 0.06) / 0.07))).toFixed(3);
+      const endP = Math.max(0, Math.min(1, (p - DAY) / (1 - DAY - 0.02)));
+      scrim.style.opacity = (endP * 0.9).toFixed(3);
+      endcard.style.opacity = endP < 0.15 ? '0' : Math.min(1, (endP - 0.15) / 0.35).toFixed(3);
+    }
+
+    const tl = gsap.timeline({ paused: true });
+    const state = { p: 0 };
+    tl.to(state, { p: 1, duration: 30, ease: 'none', onUpdate: () => draw(state.p) }, 0);
+    // a small end-card lift, in addition to the opacity handled in draw()
+    tl.fromTo('#endcard .inner', { y: 26 }, { y: 0, duration: 1.0, ease: 'power3.out' }, 26.1);
+
+    draw(0); // set the initial (03:00, near-empty) frame before the renderer seeks
+    window.__timelines = window.__timelines || {};
+    window.__timelines.main = tl;
+  })();
+  </script>
+</body>
+</html>
