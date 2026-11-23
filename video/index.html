@@ -87,7 +87,6 @@
       <div id="curvewrap">
         <div class="cap">Distinct aircraft, hour by hour</div>
         <svg id="curve" viewBox="0 0 560 118" preserveAspectRatio="none">
-          <rect id="peakband" x="0" y="0" width="0" height="118"></rect>
           <polyline id="curvebase" points=""></polyline>
           <polyline id="curvelit" points=""></polyline>
           <circle id="curvedot" cx="0" cy="0" r="5"></circle>
@@ -157,8 +156,6 @@
     let basePts = '';
     for (let h = 0; h <= 24; h++){ basePts += xAt(h) + ',' + yAt(activityAt(h % 24)) + ' '; }
     document.getElementById('curvebase').setAttribute('points', basePts.trim());
-    const peak = document.getElementById('peakband');
-    peak.setAttribute('x', xAt(10)); peak.setAttribute('width', xAt(18) - xAt(10));
     const litLine = document.getElementById('curvelit');
     const dot = document.getElementById('curvedot');
 
