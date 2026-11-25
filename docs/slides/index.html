@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Central European Air Traffic — 5 slides</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Hanken+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<style>
+  :root{
+    --ground:#070b16; --ground2:#0b1120; --text:#eaf0fb; --dim:#bccbe6;
+    --faint:#8ea2c6; --cyan:#5cd0ff; --amber:#ffb454; --line:rgba(120,150,210,.18);
+  }
+  html,body{background:var(--ground)}
+  .reveal{
+    font-family:"Hanken Grotesk",system-ui,sans-serif;color:var(--text);
+    background:
+      radial-gradient(120% 80% at 72% 12%, rgba(92,208,255,.10), transparent 58%),
+      radial-gradient(90% 70% at 20% 95%, rgba(255,180,84,.08), transparent 55%),
+      linear-gradient(180deg,#060912,#070b16 60%,#090d1a);
+    font-size:30px;
+  }
+  .reveal ::selection{background:rgba(92,208,255,.28)}
+  .reveal h1,.reveal h2,.reveal h3{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:700;color:#fff;
+    letter-spacing:-.02em;line-height:1.04;text-transform:none;margin:0 0 .4em}
+  .reveal h1{font-size:2.3em}
+  .reveal h2{font-size:1.55em}
+  .reveal h3{font-size:1.0em;color:var(--dim);font-weight:600}
+  .reveal section{text-align:left}
+  .reveal .center{text-align:center}
+  .reveal p{line-height:1.5}
+  .reveal .lead{color:var(--dim);font-size:1.05em;max-width:24ch}
+  .reveal strong{color:#fff}
+  .reveal .cyan{color:var(--cyan)} .reveal .amber{color:var(--amber)}
+  .reveal .kicker{font-family:"Space Mono",monospace;font-size:.6em;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--faint);margin-bottom:.8em}
+  .reveal ul{margin-left:1em}
+  .reveal li{line-height:1.45;margin:.35em 0;color:var(--dim)}
+  .reveal li strong{color:#fff}
+  .reveal a{color:var(--cyan);text-decoration:none}
+  .num{font-family:"Space Mono",monospace;color:var(--text)}
+
+  /* terminal block */
+  .term{font-family:"Space Mono",monospace;font-size:.62em;background:#0a0f1d;
+    border:1px solid var(--line);border-radius:12px;padding:.9em 1.1em;margin:.5em 0;line-height:1.5}
+  .term .cmd{color:#fff} .term .cmd::before{content:"$ ";color:var(--cyan)}
+  .term .out{color:var(--dim)} .term .ok{color:#5fd39b} .term .amber{color:var(--amber)}
+  .caption{font-size:.6em;color:var(--faint);margin-top:.3em}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:1.1em;align-items:center}
+  .shot{border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 20px 50px -28px rgba(0,0,0,.85)}
+  .shot img{display:block;width:100%}
+
+  .reveal .pill{display:inline-block;font-family:"Space Mono",monospace;font-size:.62em;
+    background:var(--amber);color:#201403;padding:.4em .8em;border-radius:10px;margin:.3em 0}
+  .reveal .linkrow{font-family:"Space Mono",monospace;color:var(--dim);font-size:.72em;margin:.35em 0}
+  .reveal .linkrow b{color:#fff}
+  .reveal .controls{color:var(--cyan)}
+  .reveal .progress{color:var(--amber)}
+  .footnote{position:absolute;bottom:.4em;left:0;right:0;text-align:center;
+    font-family:"Space Mono",monospace;font-size:.5em;color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+  <!-- 1 ========= For whom, and why ========= -->
+  <section data-auto-animate>
+    <div class="kicker">For whom, and why</div>
+    <h1>Central European<br>Air Traffic</h1>
+    <p class="lead" style="margin-top:.6em">A live map of the planes over Central Europe, backed by a data warehouse that records the sky every two minutes.</p>
+    <p style="margin-top:.8em"><strong>For</strong> anyone curious about the sky above them — <span class="cyan">and developers</span> who want to see a real data pipeline behind the picture.</p>
+    <p style="margin-top:.5em"><strong>Why:</strong> the OpenSky API tells you what is in the air <em>right now</em>. It can't tell you what was there last Tuesday. <span class="amber">So I keep the history the API throws away.</span></p>
+    <aside class="notes">
+      30s. Problem: OpenSky is real-time only, no history. My program polls it every 2 min, lands every snapshot, and turns it into a queryable warehouse + a live map. Audience: a casual visitor and a developer — two layers on one page.
+    </aside>
+  </section>
+
+  <!-- 2 ========= The demo ========= -->
+  <section>
+    <div class="kicker">The demo — from a real run</div>
+    <h2>Three commands, one live map</h2>
+    <div class="two">
+      <div>
+        <div class="term"><!-- REPLACE the numbers with today's real run before you present -->
+          <div class="cmd">flights ingest --once</div>
+          <div class="out">landed (raw):  <span class="num">487</span></div>
+          <div class="out">accepted: <span class="ok">487</span>   rejected: <span class="ok">0</span></div>
+        </div>
+        <div class="term">
+          <div class="cmd">flights build</div>
+          <div class="out">staging / positions / transits / coverage <span class="ok">ok</span></div>
+          <div class="out">last 24h: <span class="amber">~1,240</span> segments, <span class="amber">87%</span> known type</div>
+        </div>
+        <div class="caption">Numbers are today's measurement. A clean live feed means ~0 rejects — that is a result, not a gap.</div>
+      </div>
+      <div>
+        <div class="shot"><img src="../dashboard.png" alt="The live dashboard: a 3D hexagon traffic-density map, a daily-presence curve, and a collection-coverage strip."></div>
+        <div class="caption">Open the dashboard, pick a day → 3D hexagon density map, the hour-by-hour curve, and where collection had gaps.</div>
+      </div>
+    </div>
+    <aside class="notes">
+      ~90s. Run it live or from screenshots. ingest --once: one poll lands, staging shows what it refused (today ~0). build: rebuilds the star schema and prints the summary. Then open https://flights-ce.duckdns.org, pick a day, show the map + curve + a gap hour (or say there was none). Say out loud that every number is today's measurement.
+    </aside>
+  </section>
+
+  <!-- 3 ========= Why it works: I was in control ========= -->
+  <section>
+    <div class="kicker">Why it works</div>
+    <h2>I set the rules; the agent worked inside them</h2>
+    <ul>
+      <li><strong>Every decision is logged.</strong> <code>PLANNING_LOG.md</code> is append-only, each line marked <em>decided by: user</em> or <em>agent</em> — I chose the schema grain, the reject rules, the scope.</li>
+      <li><strong>I wrote the checks.</strong> A regression test fixes the warehouse's transit count to a band I measured by hand; a change that moves it <span class="cyan">fails the test</span> and can't ship.</li>
+      <li><strong>A rule I enforced.</strong> The collector (<code>ingest.py</code>) is <span class="amber">frozen</span> — a day lost can never be backfilled, so the agent never touches it.</li>
+      <li><strong>One small PR per change, and I merged every one.</strong> I ran every write to the live server myself.</li>
+    </ul>
+    <aside class="notes">
+      ~60s. The point the course cares about: I was in control, not the AI. Proof that lives in the repo: the append-only decision log with attribution, tests I defined as the acceptance criteria (incl. a regression guard on real numbers), the frozen-collector boundary, and user-reviewed/merged PRs. The agent could propose; I decided and merged.
+    </aside>
+  </section>
+
+  <!-- 4 ========= What I learned ========= -->
+  <section>
+    <div class="kicker">What I learned — one concrete moment</div>
+    <h2>The silent 13-day freeze</h2>
+    <p>On <span class="num">Nov 15</span> the dashboard still showed <span class="num">Nov 3</span>. The collector was <span class="cyan">alive and losing nothing</span> — but the hourly warehouse build had failed silently for <strong>13 days</strong>.</p>
+    <p style="margin-top:.5em">Cause: a leftover <code>&lt;flights-ce&gt;</code> placeholder in <code>.env</code> broke the build script that read it — <span class="amber">and the same line killed the alert</span> that should have caught it.</p>
+    <p style="margin-top:.6em"><strong>The lesson:</strong> a monitor that can die the same way as the thing it watches is not a monitor. I learned to check collector-liveness and warehouse-freshness <em>separately</em>, fixed it, caught up the backlog, and hardened the scripts so one bad line can't abort the build again.</p>
+    <aside class="notes">
+      ~60s. A real moment from the repo (PLANNING_LOG 2026-11-15). Diagnosis: raw data still landing (collector fine) vs mart stale (build stuck) are independent. Root cause: shell-sourcing a .env with an unquoted character. Fix + hardening in the deploy scripts. Honest, and it is why the page still truthfully says "live".
+    </aside>
+  </section>
+
+  <!-- 5 ========= What's next ========= -->
+  <section>
+    <div class="kicker">What's next</div>
+    <h2>From live to lasting</h2>
+    <ul>
+      <li><strong>Freeze a permanent public copy.</strong> When collection ends, ship the offline dashboard to Streamlit Community Cloud from a few-MB snapshot — no server needed.</li>
+      <li><strong>Decide the long-term home (~Feb).</strong> Keep it live on a free always-on VM, or keep it on the cheap VPS — the plan is written down either way.</li>
+      <li><strong>Keep collecting.</strong> Every extra week makes the seasonal questions richer; the warehouse was useful after day one.</li>
+    </ul>
+    <aside class="notes">
+      ~45s. Not "more features" — durability. The offline snapshot is the permanent portfolio piece; the hosting choice is captured in deploy/FUTURE_HOSTING.md. The airport catalogue was deliberately left out of scope (nothing would join to it).
+    </aside>
+  </section>
+
+  <!-- closing (link, not one of the five) -->
+  <section class="center" data-background-color="#060912">
+    <div class="kicker center">See it live</div>
+    <h2 style="font-size:1.8em">It's running right now.</h2>
+    <p class="pill">flights-ce.duckdns.org</p>
+    <div class="linkrow" style="margin-top:1em">page &nbsp; <b>esst-prog2.github.io/Airplane-flight-data-viz</b></div>
+    <div class="linkrow">code &nbsp; <b>github.com/esst-prog2/Airplane-flight-data-viz</b></div>
+    <aside class="notes">Closing. The live dashboard, the promo page (with a 30s video), and the full code are all one click away.</aside>
+  </section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/notes/notes.min.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    controls: true,
+    progress: true,
+    slideNumber: 'c/t',
+    transition: 'fade',
+    width: 1280, height: 720, margin: 0.08,
+    plugins: [ RevealNotes ]
+  });
+</script>
+</body>
+</html>
